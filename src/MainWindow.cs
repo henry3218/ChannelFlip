@@ -26,7 +26,8 @@ namespace ChannelFlip
         private readonly CancellationTokenSource closing = new CancellationTokenSource();
         private readonly bool simulation;
         private bool updating, dialogOpen;
-        private string itemsKey, preferenceKey;
+        private string itemsKey;
+        private readonly PreferenceWriter preferenceWriter = new PreferenceWriter();
         private T Get<T>(string name) where T : class { return View.FindName(name) as T; }
 
         public MainWindow(bool preview) : this(preview ? Scenarios.Create("waiting") : CreateLiveSession(), preview) { }
@@ -53,12 +54,12 @@ namespace ChannelFlip
             devices.SelectionChanged += delegate
             {
                 if (updating) return;
-                Session.Select(devices.SelectedItem as OutputDevice); SavePreference();
+                Session.Select(devices.SelectedItem as OutputDevice);
             };
             mode.SelectionChanged += delegate
             {
                 if (updating) return;
-                Session.SetFollow(mode.SelectedIndex == 1); SavePreference();
+                Session.SetFollow(mode.SelectedIndex == 1);
             };
             Get<Button>("Refresh").Click += delegate { Session.Refresh(); };
             Get<Button>("SetupButton").Click += async delegate { await FocusAfter(Setup(), Get<Button>("TestLeft")); };
@@ -115,11 +116,7 @@ namespace ChannelFlip
         private void SavePreference()
         {
             if (simulation) return;
-            string key = Session.Preference.FollowDefault + "|" + Session.Preference.Id + "|" + Session.Preference.Name + "|" + Session.Preference.Language;
-            if (preferenceKey == key) return;
-            preferenceKey = key;
-            try { Session.Preference.Save(Program.DataDirectory); }
-            catch (Exception ex) { Session.ErrorDetail = L10n.T("裝置偏好未能儲存：") + ex.Message; Update(); }
+            preferenceWriter.Save(Session.Preference, p => p.Save(Program.DataDirectory));
         }
         private void OnSystemParametersChanged(object sender, PropertyChangedEventArgs e)
         { View.Dispatcher.BeginInvoke((Action)delegate { UiTheme.Apply(View, null); ApplyTextSize(); Update(); }); }
@@ -140,9 +137,11 @@ namespace ChannelFlip
         }
         public void Update()
         {
+            if (updating) return;
             updating = true;
             try
             {
+                SavePreference();
                 string key = L10n.Language + "|" + String.Join("\n", Session.Devices.Select(d => d.Id + "|" + d.DisplayName));
                 if (itemsKey != key) { devices.ItemsSource = Session.Devices.ToList(); itemsKey = key; }
                 devices.SelectedItem = devices.Items.Cast<OutputDevice>().FirstOrDefault(d => Session.Selected != null && d.Id == Session.Selected.Id);
@@ -184,14 +183,15 @@ namespace ChannelFlip
                 Get<TextBlock>("Message").Text = Session.Busy ? "" : Session.Message ?? "";
                 Get<TextBlock>("Message").Visibility = !Session.Busy && !String.IsNullOrEmpty(Session.Message) ? Visibility.Visible : Visibility.Collapsed;
                 Get<TextBlock>("Message").SetResourceReference(TextBlock.ForegroundProperty, Session.MessageError ? "Warning" : "Muted");
-                string detail = String.Join("\n\n", new[] { Session.ReadError, Session.ErrorDetail,
+                string operationError = Session.LastOperation != null && Session.LastOperation.Failed ? Session.LastOperation.ErrorText : Session.ErrorDetail;
+                string detail = String.Join("\n\n", new[] { Session.ReadError, operationError, Session.EnumerationError,
+                    preferenceWriter.Error == null ? null : L10n.T("裝置偏好未能儲存：") + preferenceWriter.Error,
                     Session.State.Error == 0 ? null : L10n.T("核心錯誤：0x") + Session.State.Error.ToString("X8"), Session.ScopeError == null ? null : L10n.T("全域設定：") + Session.ScopeError }.Where(s => !String.IsNullOrEmpty(s)));
                 Get<TextBox>("ErrorText").Text = detail;
                 Get<Expander>("ErrorExpander").Visibility = detail.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
                 Get<Button>("Advanced").IsEnabled = !busy;
             }
             finally { updating = false; }
-            SavePreference();
         }
         private async System.Threading.Tasks.Task Setup()
         {

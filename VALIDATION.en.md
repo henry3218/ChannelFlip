@@ -2,6 +2,20 @@
 
 [繁體中文 and full historical records](VALIDATION.md) | **English**
 
+## 2.3.0: reliability candidate
+
+Date: September 12, 2026. Windows 11 build 26200, x64. This candidate addresses F01–F07 and release provenance. Its new audio core requires its own hardware acceptance; earlier results below do not establish that. See the [implementation, tests and limits](docs/RELIABILITY.md).
+
+- **325 managed checks passed**, covering preference retries, retained operation errors, per-device isolation, concurrent processes and recovery after forced process termination.
+- **63 production-core checks and 94 separate fault-injection checks passed**, including speaker positions, zero masks, mono/stereo/6/8 channels and failed memory residency acquisition.
+- **7 packaging checks passed**: reject replaced EXEs, mismatched versions and stale/failed test records; verify packaged hashes; prevent packaging-time HEAD from supplying build provenance.
+- **189 bilingual messages and 94 isolated UI renders passed**. A standalone EXE produced both-language previews, licenses and read-only device diagnostics.
+- The pressure harness records 5,000 callbacks, 64 MiB of touched memory and 50 working-set trims. Its report includes process and call-window page faults, mean/p99/max duration, 10 ms deadline overruns and invalid buffers. These are isolated-host measurements, not evidence of physical headphone glitches or faults attributable solely to an AudioDG callback.
+
+Physical pressure and sleep/resume acceptance must retain the exact EXE/core hashes, ETW evidence, listening results and interruption observations with that version's acceptance result. Until those are available, F03 hardware acceptance remains pending. Windows 10 remains untested.
+
+Local evidence: `work/reliability-build.log`, `work/reliability-packaging.log`, `work/reliability-standalone.log`, `work/reliability-ui.log`, and `work/native-pressure.json`. CI separately retains native test output, pressure reports and artifact records. Private endpoint diagnostics and ETL traces are not published.
+
 ## 2.2.0: English and Traditional Chinese
 
 Date: September 12, 2026. Environment: Windows 11 build 26200, x64. This update adds English, a language selector, and bilingual documentation. The native audio DLL is unchanged.

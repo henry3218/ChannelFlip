@@ -1,9 +1,10 @@
-param([string]$OutputDirectory, [ValidateSet('zh-TW','en')][string[]]$Languages = @('zh-TW','en'))
+param([string]$OutputDirectory, [ValidateSet('zh-TW','en')][string[]]$Languages = @('zh-TW','en'), [string]$BuildDirectory)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot 'work\ui-validation' }
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-$exe = Join-Path $projectRoot 'app\ChannelFlip.exe'
+if (-not $BuildDirectory) { $BuildDirectory = Join-Path $projectRoot 'app' }
+$exe = Join-Path $BuildDirectory 'ChannelFlip.exe'
 $scenarios = @('setup','waiting','processing','confirmed-idle','off','offline','empty','core-error','read-error','enhancements-off','unsupported','test-failed','busy','long-name')
 $cases = @()
 foreach ($scenario in $scenarios) {

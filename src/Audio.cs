@@ -23,12 +23,30 @@ namespace ChannelFlip
         public override string ToString() { return DisplayName; }
     }
 
+    public sealed class AudioDeviceSnapshot
+    {
+        public readonly List<OutputDevice> Devices = new List<OutputDevice>();
+        public readonly List<string> Diagnostics = new List<string>();
+        internal void Read(uint count, Func<uint, OutputDevice> read)
+        {
+            for (uint i = 0; i < count; i++)
+                try { Devices.Add(read(i)); }
+                catch (Exception ex) { Diagnostics.Add(L10n.T("無法讀取音訊裝置 {0}：{1}", i + 1, ex.Message)); }
+        }
+    }
+
     public static class AudioDevices
     {
         public const string RenderRegistry = @"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\";
         public static List<OutputDevice> Enumerate()
         {
-            var list = new List<OutputDevice>();
+            var snapshot = ReadSnapshot();
+            foreach (string error in snapshot.Diagnostics) Program.Log(new System.IO.IOException(error));
+            return snapshot.Devices;
+        }
+        public static AudioDeviceSnapshot ReadSnapshot()
+        {
+            var snapshot = new AudioDeviceSnapshot();
             IMMDeviceEnumerator enumerator = null;
             IMMDeviceCollection collection = null;
             IMMDevice defaultDevice = null;
@@ -36,32 +54,27 @@ namespace ChannelFlip
             {
                 enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
                 string defaultId = null;
-                if (enumerator.GetDefaultAudioEndpoint(0, 1, out defaultDevice) >= 0) Check(defaultDevice.GetId(out defaultId));
+                try { if (enumerator.GetDefaultAudioEndpoint(0, 1, out defaultDevice) >= 0) Check(defaultDevice.GetId(out defaultId)); }
+                catch (Exception ex) { snapshot.Diagnostics.Add(L10n.T("無法讀取預設音訊裝置：{0}", ex.Message)); }
                 Check(enumerator.EnumAudioEndpoints(0, 1, out collection));
                 uint count;
                 Check(collection.GetCount(out count));
-                for (uint i = 0; i < count; i++)
+                snapshot.Read(count, delegate(uint i)
                 {
                     IMMDevice endpoint = null;
+                    IPropertyStore properties = null;
                     try
                     {
                         Check(collection.Item(i, out endpoint));
                         string id;
                         Check(endpoint.GetId(out id));
-                        string guid = Engine.GuidText(id.Substring(id.LastIndexOf('{')));
+                        Check(endpoint.OpenPropertyStore(0, out properties));
+                        string guid = Engine.GuidText(PropertyString(properties, new PropertyKey("1da5d803-d492-4edd-8c23-e0c0ffee7f0e", 4)));
                         var device = new OutputDevice { Id = id, Guid = guid, Name = id, IsDefault = id == defaultId };
+                        try { device.Name = PropertyString(properties, new PropertyKey("a45c254e-df1c-4efd-8020-67d146a850e0", 14)) ?? id; }
+                        catch (Exception ex) { snapshot.Diagnostics.Add(L10n.T("無法讀取音訊裝置 {0}：{1}", id, ex.Message)); }
                         using (var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
                         {
-                            using (var properties = machine.OpenSubKey(RenderRegistry + guid + @"\Properties"))
-                            {
-                                if (properties != null)
-                                {
-                                    string friendly = properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},14") as string;
-                                    string connection = properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2") as string;
-                                    string hardware = properties.GetValue("{b3f8fa53-0004-438e-9003-51a46e139bfc},6") as string;
-                                    device.Name = friendly ?? ((connection ?? L10n.T("音訊輸出")) + " (" + (hardware ?? guid) + ")");
-                                }
-                            }
                             using (var fx = machine.OpenSubKey(RenderRegistry + guid + @"\FxProperties"))
                             {
                                 if (fx != null)
@@ -84,14 +97,29 @@ namespace ChannelFlip
                             finally { if (format != IntPtr.Zero) Marshal.FreeCoTaskMem(format); Release(client); }
                         }
                         catch (Exception ex) { device.FormatError = ex.Message; }
-                        list.Add(device);
+                        return device;
                     }
-                    finally { Release(endpoint); }
-                }
+                    finally { Release(properties); Release(endpoint); }
+                });
             }
             finally { Release(defaultDevice); Release(collection); Release(enumerator); }
-            return list.OrderByDescending(x => x.IsDefault).ThenBy(x => x.Name).ToList();
+            snapshot.Devices.Sort((a, b) => a.IsDefault != b.IsDefault ? (a.IsDefault ? -1 : 1) : String.Compare(a.Name, b.Name, StringComparison.CurrentCulture));
+            return snapshot;
         }
+
+        internal static string PropertyString(IPropertyStore store, PropertyKey key)
+        {
+            PropVariant value = new PropVariant();
+            try
+            {
+                Check(store.GetValue(ref key, out value));
+                if (value.Type == 0) return null;
+                if (value.Type != 31) throw new InvalidOperationException("Expected VT_LPWSTR for endpoint property " + key.Id);
+                return Marshal.PtrToStringUni(value.Pointer);
+            }
+            finally { PropVariantClear(ref value); }
+        }
+        [DllImport("ole32.dll")] private static extern int PropVariantClear(ref PropVariant value);
 
         internal static IAudioClient Activate(IMMDevice endpoint)
         {
@@ -213,9 +241,32 @@ namespace ChannelFlip
     internal interface IMMDevice
     {
         [PreserveSig] int Activate(ref Guid iid, uint context, IntPtr parameters, [MarshalAs(UnmanagedType.IUnknown)] out object value);
-        [PreserveSig] int OpenPropertyStore(uint access, out IntPtr properties);
+        [PreserveSig] int OpenPropertyStore(uint access, out IPropertyStore properties);
         [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
         [PreserveSig] int GetState(out uint state);
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct PropertyKey
+    {
+        public Guid Format;
+        public uint Id;
+        public PropertyKey(string format, uint id) { Format = new Guid(format); Id = id; }
+    }
+    // PROPVARIANT contains a 16-byte union on x64 (including counted arrays).
+    [StructLayout(LayoutKind.Explicit, Size = 24)]
+    internal struct PropVariant
+    {
+        [FieldOffset(0)] public ushort Type;
+        [FieldOffset(8)] public IntPtr Pointer;
+    }
+    [ComImport, Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IPropertyStore
+    {
+        [PreserveSig] int GetCount(out uint count);
+        [PreserveSig] int GetAt(uint index, out PropertyKey key);
+        [PreserveSig] int GetValue(ref PropertyKey key, out PropVariant value);
+        [PreserveSig] int SetValue(ref PropertyKey key, ref PropVariant value);
+        [PreserveSig] int Commit();
     }
     [ComImport, Guid("1CB9AD4C-DBFA-4c32-B178-C2F568A703B2"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IAudioClient

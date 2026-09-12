@@ -167,31 +167,34 @@ namespace ChannelFlip
         public static async Task Attach(string id, bool allowAudioHostChange)
         {
             int code = await RunAdmin("--attach " + GuidText(id) + (allowAudioHostChange ? " --allow-audio-host-change" : ""));
-            if (code != 0) throw SetupError(code);
+            if (code != 0) throw new IOException("Unexpected setup exit code: " + code);
         }
         public static async Task Remove(string expected)
         {
             CheckScope(expected);
             int code = await RunAdmin("--remove --scope " + expected);
-            if (code != 0) throw SetupError(code);
+            if (code != 0) throw new IOException("Unexpected setup exit code: " + code);
         }
         public static async Task Restart()
         {
             int code = await RunAdmin("--restart-audio");
-            if (code != 0) throw SetupError(code);
+            if (code != 0) throw new IOException("Unexpected setup exit code: " + code);
         }
-        private static Exception SetupError(int code)
+        internal static string SetupResultPath(string operationId)
+        { return Path.Combine(SharedDirectory, "SetupResults", Guid.ParseExact(operationId, "N").ToString("N") + ".txt"); }
+        private static Exception SetupError(int code, string operationId)
         {
-            string log = Path.Combine(SharedDirectory, "setup-error.txt");
+            string log = SetupResultPath(operationId);
             string detail = File.Exists(log) ? File.ReadAllText(log) : L10n.T("請檢查 Windows 管理員授權。");
             return new InvalidOperationException(L10n.T("音訊設定未完成（{0}）：{1}", code, detail));
         }
         private static async Task<int> RunAdmin(string arguments)
         {
             Process child;
+            string operationId = Guid.NewGuid().ToString("N");
             try
             {
-                child = Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location, "--language " + L10n.Language + " " + arguments)
+                child = Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location, "--language " + L10n.Language + " --operation-id " + operationId + " " + arguments)
                 { UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden });
             }
             catch (Win32Exception ex)
@@ -200,7 +203,12 @@ namespace ChannelFlip
                 throw;
             }
             if (child == null) throw new IOException(L10n.T("無法啟動系統設定。"));
-            using (child) { await Task.Run(delegate { child.WaitForExit(); }); return child.ExitCode; }
+            using (child)
+            {
+                await Task.Run(delegate { child.WaitForExit(); });
+                if (child.ExitCode != 0) throw SetupError(child.ExitCode, operationId);
+                return child.ExitCode;
+            }
         }
         public static bool IsAdministrator()
         {
@@ -208,6 +216,8 @@ namespace ChannelFlip
         }
 
         public static void AttachAsAdmin(string id, bool allowAudioHostChange)
+        { SystemConfiguration.Run(delegate { AttachCore(id, allowAudioHostChange); }); }
+        private static void AttachCore(string id, bool allowAudioHostChange)
         {
             if (!IsAdministrator()) throw new UnauthorizedAccessException(L10n.T("需要 Windows 管理員授權。"));
             id = GuidText(id);
@@ -269,6 +279,7 @@ namespace ChannelFlip
                     registry.SetValue("StatePath", StatePath(id));
                     registry.SetValue("ChildClsid", child);
                     registry.SetValue("DeviceName", device.Name);
+                    registry.Flush();
                 }
             }
             try
@@ -279,6 +290,7 @@ namespace ChannelFlip
                 {
                     if (registry.GetValue("ProtectionJournal") == null)
                         registry.SetValue("ProtectionJournal", RegistryEdit.Serialize(new[] { RegistryEdit.Capture(AudioPath, ProtectionValue, 1, RegistryValueKind.DWord) }));
+                    registry.Flush();
                 }
                 if (NeedsAudioHostPermission()) RegistryEdit.Capture(AudioPath, ProtectionValue, 1, RegistryValueKind.DWord).Apply();
                 foreach (var change in changes) change.Apply();
@@ -348,6 +360,8 @@ namespace ChannelFlip
         }
         public static void RemoveAsAdmin() { RemoveAsAdmin(null); }
         public static void RemoveAsAdmin(string expected)
+        { SystemConfiguration.Run(delegate { RemoveCore(expected); }); }
+        private static void RemoveCore(string expected)
         {
             if (!IsAdministrator()) throw new UnauthorizedAccessException();
             var scope = CheckScope(expected);
@@ -356,6 +370,8 @@ namespace ChannelFlip
             RestartAudioService();
         }
         public static void RestartAudioService()
+        { SystemConfiguration.Run(RestartAudioCore); }
+        private static void RestartAudioCore()
         {
             if (!IsAdministrator()) throw new UnauthorizedAccessException();
             using (var service = new ServiceController("Audiosrv"))
@@ -475,51 +491,25 @@ namespace ChannelFlip
 
     internal static class RegistryAccess
     {
-        // Endpoint effect keys may be owned by AudioEndpointBuilder. Borrow access only for
-        // the selected key, then restore its original owner and DACL even when writing fails.
+        public static void RecoverPending() { PermissionRecovery.ForMachine().RecoverAll(); }
         public static void Write(string path, Action<RegistryKey> write)
         {
             using (var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
             {
-                try { using (var key = machine.OpenSubKey(path, true)) { if (key == null) throw new IOException(L10n.T("登錄機碼不存在：") + path); write(key); return; } }
+                RegistryKey writable = null;
+                try { writable = machine.OpenSubKey(path, true); }
                 catch (UnauthorizedAccessException) { }
-                catch (System.Security.SecurityException) { } // .NET Framework reports denied OpenSubKey access this way.
-                EnablePrivilege("SeTakeOwnershipPrivilege"); EnablePrivilege("SeRestorePrivilege");
-                RegistrySecurity original;
-                using (var key = machine.OpenSubKey(path, RegistryKeyPermissionCheck.ReadSubTree, RegistryRights.ReadPermissions))
-                    original = key.GetAccessControl(AccessControlSections.Access | AccessControlSections.Owner | AccessControlSections.Group);
-                bool ownerChanged = false;
-                try
-                {
-                    using (var key = machine.OpenSubKey(path, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.TakeOwnership))
-                    {
-                        var security = new RegistrySecurity(); security.SetOwner(WindowsIdentity.GetCurrent().User); key.SetAccessControl(security); ownerChanged = true;
-                    }
-                    using (var key = machine.OpenSubKey(path, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ChangePermissions))
-                    {
-                        var security = new RegistrySecurity(); security.SetSecurityDescriptorBinaryForm(original.GetSecurityDescriptorBinaryForm(), AccessControlSections.Access);
-                        security.AddAccessRule(new RegistryAccessRule(WindowsIdentity.GetCurrent().User, RegistryRights.FullControl, AccessControlType.Allow)); key.SetAccessControl(security);
-                    }
-                    using (var key = machine.OpenSubKey(path, true)) write(key);
-                }
-                finally
-                {
-                    if (ownerChanged)
-                        using (var key = machine.OpenSubKey(path, RegistryKeyPermissionCheck.ReadWriteSubTree, RegistryRights.ChangePermissions | RegistryRights.TakeOwnership))
-                        {
-                            var restored = new RegistrySecurity();
-                            restored.SetSecurityDescriptorBinaryForm(original.GetSecurityDescriptorBinaryForm(), AccessControlSections.Access | AccessControlSections.Owner | AccessControlSections.Group);
-                            key.SetAccessControl(restored);
-                        }
-                }
+                catch (System.Security.SecurityException) { }
+                if (writable != null) { using (writable) { write(writable); writable.Flush(); } return; }
             }
+            PermissionRecovery.ForMachine().Write(path, write);
         }
         [StructLayout(LayoutKind.Sequential, Pack = 1)] private struct TokenPrivileges { public uint Count; public long Luid; public uint Attributes; }
         [DllImport("advapi32.dll", SetLastError = true)] private static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
         [DllImport("advapi32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool LookupPrivilegeValue(string system, string name, out long luid);
         [DllImport("advapi32.dll", SetLastError = true)] private static extern bool AdjustTokenPrivileges(IntPtr token, bool disable, ref TokenPrivileges privileges, uint size, IntPtr previous, IntPtr returned);
         [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
-        private static void EnablePrivilege(string name)
+        internal static void EnablePrivilege(string name)
         {
             IntPtr token;
             if (!OpenProcessToken(Process.GetCurrentProcess().Handle, 0x28, out token)) throw new Win32Exception();

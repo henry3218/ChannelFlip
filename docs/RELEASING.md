@@ -10,15 +10,23 @@ From a clean Windows x64 checkout:
 .\tools\verify-translations.ps1
 .\tools\bootstrap.ps1
 .\build.ps1 -Test
-.\tests\native-tests.ps1
 .\tools\verify-ui.ps1
 .\tools\verify-package.ps1
+.\tests\package-tests.ps1
 .\tools\package-release.ps1
 ```
 
 The last command creates a local preview ZIP and its SHA-256 file under `dist/`. It does not create a GitHub release. The ZIP contains the EXE, user instructions, first-run changes and validation notes in both English and Traditional Chinese, plus license notices, build information and checksums. Both UI translations are embedded in the EXE. Verify the archive contents and both languages before uploading.
 
 The GitHub Actions workflow builds and uploads a preview artifact for review. It has read-only repository permissions and does not publish releases. It omits physical-device diagnostics; hosted CI cannot validate actual headphone direction.
+
+## Build provenance
+
+`build.ps1` captures the source commit, tree, dirty status, input hashes, version and compiler hashes **before compilation**. The EXE embeds this context. `BUILD_RECORD.json` records the resulting EXE/core hashes; `TEST_RESULTS.json` binds the managed, native and fault-injection test results to those same bytes. `-SkipNative` refuses a stale native source record or a replaced DLL.
+
+Packaging requires these records, checks the embedded context and version, checks every packaged document against the build's source snapshot, and verifies the staged EXE again. It never reads the packaging checkout's HEAD as build provenance. An altered EXE, mismatched version or stale/failed test receipt is rejected. A dirty build is explicitly marked as such; its commit alone does not identify its modified source.
+
+Use `-OutputDirectory .\work\candidate` to build without overwriting the running app, and pass `-BuildDirectory .\work\candidate` to the verification and packaging scripts. Publish the resulting ZIP and its checksum directly. Do not rebuild the EXE between hardware verification and publication. These unsigned integrity records do not authenticate a publisher or prevent an attacker from forging both artifacts and records.
 
 ## Release evidence
 
@@ -29,6 +37,7 @@ Keep releases marked as previews until the current binary has passed these devic
 - Disabling swap, closing/reopening, restarting audio, and reconnecting the device behave as documented.
 - Removing system settings restores the prior endpoint effect registrations, protected-audio setting and registry permissions.
 - Failed setup restores usable audio and leaves enough information for recovery.
+- Memory pressure and sleep/resume have ETW evidence for audio glitches and faults, with callback timing evidence and the exact core hash. The isolated pressure harness does not replace this test; see [reliability verification](RELIABILITY.md).
 
 Document tested Windows builds and devices, and list bypass paths such as ASIO, exclusive mode, RAW and disabled enhancements. Do not label a binary WHQL certified or signed unless that exact distributed binary has been verified accordingly.
 

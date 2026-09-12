@@ -9,7 +9,7 @@ namespace ChannelFlip
     public sealed class DevicePreference
     {
         public bool FollowDefault;
-        public string Id, Name, Language;
+        public string Id, EndpointGuid, Name, Language;
         public static DevicePreference Load(string directory)
         {
             var result = new DevicePreference();
@@ -19,6 +19,8 @@ namespace ChannelFlip
                 var xml = XElement.Load(path);
                 result.FollowDefault = (string)xml.Attribute("mode") == "default";
                 result.Id = (string)xml.Element("id"); result.Name = (string)xml.Element("name");
+                Guid endpointGuid;
+                if (Guid.TryParse((string)xml.Element("guid"), out endpointGuid)) result.EndpointGuid = endpointGuid.ToString("B");
                 string language = (string)xml.Attribute("language");
                 result.Language = L10n.IsSupported(language) ? language : null;
             }
@@ -29,15 +31,19 @@ namespace ChannelFlip
             }
             return result;
         }
+        internal XElement ToXml()
+        {
+            return new XElement("preferences", new XAttribute("mode", FollowDefault ? "default" : "fixed"),
+                L10n.IsSupported(Language) ? new XAttribute("language", Language) : null,
+                new XElement("id", Id ?? ""), new XElement("guid", EndpointGuid ?? ""), new XElement("name", Name ?? ""));
+        }
         public void Save(string directory)
         {
             Directory.CreateDirectory(directory);
             string path = Path.Combine(directory, "preferences.xml"), temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
-                new XElement("preferences", new XAttribute("mode", FollowDefault ? "default" : "fixed"),
-                    L10n.IsSupported(Language) ? new XAttribute("language", Language) : null,
-                    new XElement("id", Id ?? ""), new XElement("name", Name ?? "")).Save(temp);
+                ToXml().Save(temp);
                 if (File.Exists(path)) File.Replace(temp, path, null); else File.Move(temp, path);
             }
             finally { if (File.Exists(temp)) File.Delete(temp); }
@@ -48,15 +54,13 @@ namespace ChannelFlip
             if (String.IsNullOrEmpty(Id))
             {
                 var initial = active.FirstOrDefault(d => d.IsDefault);
-                if (initial != null) { Id = initial.Id; Name = initial.Name; }
+                if (initial != null) { Id = initial.Id; Name = initial.Name; EndpointGuid = initial.Guid; }
                 return initial;
             }
             var found = active.FirstOrDefault(d => String.Equals(d.Id, Id, StringComparison.OrdinalIgnoreCase));
-            if (found != null) { Name = found.Name; return found; }
-            string guid = null;
-            int start = Id.LastIndexOf('{'); Guid parsed;
-            if (start >= 0 && Guid.TryParse(Id.Substring(start), out parsed)) guid = parsed.ToString("B");
-            return new OutputDevice { Id = Id, Guid = guid, Name = String.IsNullOrEmpty(Name) ? L10n.T("先前選取的裝置") : Name, Offline = true };
+            if (found != null) { Name = found.Name; EndpointGuid = found.Guid; return found; }
+            // Endpoint IDs are opaque. Legacy preferences acquire their GUID on reconnect.
+            return new OutputDevice { Id = Id, Guid = EndpointGuid, Name = String.IsNullOrEmpty(Name) ? L10n.T("先前選取的裝置") : Name, Offline = true };
         }
     }
 

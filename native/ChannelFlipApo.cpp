@@ -1,21 +1,38 @@
 #include "apo-abi.h"
-#include <new>
 #include <string.h>
+#include "ResidentMemory.h"
+
+inline void* operator new(size_t,void* address) noexcept { return address; }
 
 static LONG objects = 0;
 static LONG serverLocks = 0;
 static constexpr HRESULT Unsupported = (HRESULT)0x887d0003;
 
 static bool Same(REFGUID a, REFGUID b) { return memcmp(&a,&b,sizeof(GUID)) == 0; }
+static DWORD Layout(const CF_FORMAT& f) {
+    // WAVEFORMATEX stereo has an implicit FL/FR order; multichannel needs a mask.
+    if(!f.mask) return f.channels==1 ? 4u : f.channels==2 ? 3u : 0u;
+    DWORD mask=f.mask,bits=0;
+    if(mask&~0x3ffffu) return 0; // Only defined Windows speaker positions.
+    for(DWORD value=mask;value;value&=value-1) ++bits;
+    if(bits!=f.channels || (f.channels>=2 && (mask&3u)!=3u)) return 0;
+    return mask;
+}
 static bool Valid(const CF_FORMAT& f) {
     return Same(f.type,CF_FLOAT) && f.bytes == 4 && f.validBits == 32 && f.channels >= 1
-        && f.channels <= 64 && f.rate >= 8000 && f.rate <= 384000;
+        && f.channels <= 18 && f.rate >= 8000 && f.rate <= 384000 && Layout(f)!=0;
 }
 static bool Compatible(const CF_FORMAT& a,const CF_FORMAT& b) {
-    return Valid(a) && Valid(b) && a.channels == b.channels && a.rate == b.rate;
+    return Valid(a) && Valid(b) && a.channels == b.channels && a.rate == b.rate && Layout(a)==Layout(b);
 }
 static void CopySwap(float* output,const float* input,UINT32 frames,UINT32 channels,bool swap) {
-    if (output != input) memcpy(output,input,(size_t)frames*channels*sizeof(float));
+    // Volatile byte copying keeps the RT path inside this pinned image and
+    // preserves all float bit patterns, without an out-of-module CRT memcpy.
+    if (output != input) {
+        auto dst=reinterpret_cast<volatile BYTE*>(output);
+        auto src=reinterpret_cast<const volatile BYTE*>(input);
+        for(size_t i=0,n=(size_t)frames*channels*sizeof(float);i<n;++i)dst[i]=src[i];
+    }
     if (!swap || channels < 2) return;
     for (UINT32 f=0;f<frames;f++) {
         float* p=output+(size_t)f*channels;
@@ -35,12 +52,32 @@ class ChannelFlip final : public CFApo,public CFApoConfig,public CFApoRT,public 
     IUnknown* controller;
     LONG refs=1;
     bool initialized=false,locked=false;
+    bool resident=false;
     UINT32 channels=0,maxFrames=0,processId=0;
     CF_STATE* state=nullptr;
     CFApo* child=nullptr;
     CFApoConfig* childConfig=nullptr;
     CFApoRT* childRT=nullptr;
     CFApoEffects* childEffects=nullptr;
+
+    HRESULT LockMemory() {
+        DWORD error=ResidentMemory::AcquireImage();
+        if(error) return HRESULT_FROM_WIN32(error);
+        if(!ResidentMemory::Lock(this,sizeof(*this))) { error=GetLastError(); ResidentMemory::ReleaseImage(); return HRESULT_FROM_WIN32(error); }
+        if(state && !ResidentMemory::Lock(state,4096)) {
+            error=GetLastError(); ResidentMemory::Unlock(this,sizeof(*this)); ResidentMemory::ReleaseImage(); return HRESULT_FROM_WIN32(error);
+        }
+        resident=true; return S_OK;
+    }
+    void UnlockMemory() {
+        if(!resident)return;
+        DWORD error=ERROR_SUCCESS;
+        if(state && !ResidentMemory::Unlock(state,4096))error=GetLastError();
+        if(!ResidentMemory::Unlock(this,sizeof(*this)))error=GetLastError();
+        DWORD imageError=ResidentMemory::ReleaseImage(); if(imageError)error=imageError;
+        resident=false;
+        if(state && error)InterlockedExchange(&state->error,HRESULT_FROM_WIN32(error));
+    }
 
     void ResetChild() {
         if (childEffects) childEffects->Release();
@@ -69,6 +106,7 @@ public:
     explicit ChannelFlip(IUnknown* outer) : inner(this),controller(outer ? outer : &inner) { InterlockedIncrement(&objects); }
     ~ChannelFlip() {
         if (locked && childConfig) childConfig->UnlockForProcess();
+        UnlockMemory();
         ResetChild();
         if (state) UnmapViewOfFile(state);
         InterlockedDecrement(&objects);
@@ -85,7 +123,7 @@ public:
         AddRef(); return S_OK;
     }
     ULONG InnerAddRef() { return InterlockedIncrement(&refs); }
-    ULONG InnerRelease() { ULONG count=InterlockedDecrement(&refs); if (!count) delete this; return count; }
+    ULONG InnerRelease() { ULONG count=InterlockedDecrement(&refs); if (!count) { this->~ChannelFlip(); VirtualFree(this,0,MEM_RELEASE); } return count; }
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid,void** value) override { return controller->QueryInterface(iid,value); }
     ULONG STDMETHODCALLTYPE AddRef() override { return controller->AddRef(); }
     ULONG STDMETHODCALLTYPE Release() override { return controller->Release(); }
@@ -179,15 +217,17 @@ public:
         hr=outputs[0]->format->GetUncompressedAudioFormat(&out);
         if (FAILED(hr)) return hr;
         if (!Compatible(in,out) || inputs[0]->maxFrames==0 || inputs[0]->maxFrames>1048576 || outputs[0]->maxFrames<inputs[0]->maxFrames) return Unsupported;
-        if (childConfig) { hr=childConfig->LockForProcess(nIn,inputs,nOut,outputs); if (FAILED(hr)) return hr; }
+        hr=LockMemory();
+        if(FAILED(hr)) { if(state)InterlockedExchange(&state->error,hr); return hr; }
+        if (childConfig) { hr=childConfig->LockForProcess(nIn,inputs,nOut,outputs); if (FAILED(hr)) { UnlockMemory(); if(state)InterlockedExchange(&state->error,hr); return hr; } }
         channels=in.channels; maxFrames=inputs[0]->maxFrames; locked=true;
-        if (state) { InterlockedExchange(&state->channels,channels); InterlockedExchange(&state->rate,(LONG)in.rate); }
+        if (state) { InterlockedExchange(&state->error,0); InterlockedExchange(&state->channels,channels); InterlockedExchange(&state->rate,(LONG)in.rate); }
         return S_OK;
     }
     HRESULT STDMETHODCALLTYPE UnlockForProcess() override {
         if (!locked) return (HRESULT)0x887d0006;
         HRESULT hr=childConfig ? childConfig->UnlockForProcess() : S_OK;
-        locked=false; return hr;
+        locked=false; UnlockMemory(); return hr;
     }
     void STDMETHODCALLTYPE APOProcess(UINT32 nIn,APO_CONNECTION_PROPERTY** inputs,UINT32 nOut,APO_CONNECTION_PROPERTY** outputs) override {
         // Real-time path: bounded copies/swaps and atomic memory operations only.
@@ -234,12 +274,15 @@ public:
         *value=static_cast<IClassFactory*>(this); AddRef(); return S_OK;
     }
     ULONG STDMETHODCALLTYPE AddRef() override { return InterlockedIncrement(&refs); }
-    ULONG STDMETHODCALLTYPE Release() override { ULONG count=InterlockedDecrement(&refs); if (!count) delete this; return count; }
+    ULONG STDMETHODCALLTYPE Release() override { ULONG count=InterlockedDecrement(&refs); if (!count) { this->~Factory(); VirtualFree(this,0,MEM_RELEASE); } return count; }
     HRESULT STDMETHODCALLTYPE CreateInstance(IUnknown* outer,REFIID iid,void** value) override {
         if (!value) return E_POINTER; *value=nullptr;
         if (outer && !Same(iid,IID_IUnknown)) return E_NOINTERFACE;
-        ChannelFlip* instance=new(std::nothrow) ChannelFlip(outer);
-        if (!instance) return E_OUTOFMEMORY;
+        // A dedicated VirtualAlloc region cannot share locked pages with another
+        // object or an allocator's metadata. No per-instance unlock can unpin it.
+        void* memory=VirtualAlloc(nullptr,sizeof(ChannelFlip),MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
+        if(!memory)return E_OUTOFMEMORY;
+        ChannelFlip* instance=new(memory) ChannelFlip(outer);
         HRESULT hr=instance->InnerQueryInterface(iid,value); instance->InnerRelease(); return hr;
     }
     HRESULT STDMETHODCALLTYPE LockServer(BOOL lock) override { if (lock) InterlockedIncrement(&serverLocks); else InterlockedDecrement(&serverLocks); return S_OK; }
@@ -248,8 +291,9 @@ public:
 extern "C" HRESULT __stdcall DllGetClassObject(REFCLSID clsid,REFIID iid,void** value) {
     if (!value) return E_POINTER; *value=nullptr;
     if (!Same(clsid,CF_CLSID)) return CLASS_E_CLASSNOTAVAILABLE;
-    Factory* factory=new(std::nothrow) Factory();
-    if (!factory) return E_OUTOFMEMORY;
+    void* memory=VirtualAlloc(nullptr,sizeof(Factory),MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);
+    if(!memory)return E_OUTOFMEMORY;
+    Factory* factory=new(memory) Factory();
     HRESULT hr=factory->QueryInterface(iid,value); factory->Release(); return hr;
 }
 extern "C" HRESULT __stdcall DllCanUnloadNow() { return objects==0 && serverLocks==0 ? S_OK : S_FALSE; }

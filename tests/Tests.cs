@@ -23,6 +23,7 @@ public static class Tests
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 4 && args[0] == "--reliability-child") return RegistryReliabilityTests.Child(args);
         string directory = Path.GetFullPath(args[0]); Directory.CreateDirectory(directory);
         try
         {
@@ -153,6 +154,8 @@ public static class Tests
             }
             Throws(delegate { TestTone.Generate(48000, 1, 32, true, 0, 0, 100, 100); }, "Mono cannot claim left/right test");
             UiTests.Run(Check, directory);
+            ReliabilityTests.Run(Check, directory);
+            RegistryReliabilityTests.Run(Check);
             LocalizationTests.Run(Check, directory);
         }
         catch (Exception ex) { Console.WriteLine(ex); failed++; }

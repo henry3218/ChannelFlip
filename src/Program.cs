@@ -9,8 +9,8 @@ using System.Windows;
 
 [assembly: AssemblyTitle("Channel Flip")]
 [assembly: AssemblyDescription("Standalone left/right audio channel swap")]
-[assembly: AssemblyVersion("2.2.0.0")]
-[assembly: AssemblyFileVersion("2.2.0.0")]
+[assembly: AssemblyVersion("2.3.0.0")]
+[assembly: AssemblyFileVersion("2.3.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.6.2")]
 
 namespace ChannelFlip
@@ -21,6 +21,7 @@ namespace ChannelFlip
         [STAThread]
         public static int Main(string[] args)
         {
+            string operationId = Guid.NewGuid().ToString("N");
             try
             {
                 AppContext.SetSwitch("Switch.System.Windows.DoNotScaleForDpiChanges", false);
@@ -32,6 +33,12 @@ namespace ChannelFlip
                 {
                     if (args.Length < 2 || !L10n.IsSupported(args[1])) return 64;
                     language = args[1]; args = args.Skip(2).ToArray();
+                }
+                if (args.Length > 0 && args[0] == "--operation-id")
+                {
+                    Guid parsed;
+                    if (args.Length < 2 || !Guid.TryParseExact(args[1], "N", out parsed)) return 64;
+                    operationId = parsed.ToString("N"); args = args.Skip(2).ToArray();
                 }
                 bool isolated = args.Length > 0 && (args[0] == "--render-preview" || args[0] == "--simulate" || args[0] == "--licenses");
                 if (language == null && !isolated)
@@ -96,7 +103,7 @@ namespace ChannelFlip
                 Log(ex);
                 if (args.Length > 0 && new[] { "--attach", "--remove", "--restart-audio" }.Contains(args[0]))
                 {
-                    try { Directory.CreateDirectory(Engine.SharedDirectory); File.WriteAllText(Path.Combine(Engine.SharedDirectory, "setup-error.txt"), ex.ToString(), new UTF8Encoding(true)); } catch { }
+                    try { string result = Engine.SetupResultPath(operationId); Directory.CreateDirectory(Path.GetDirectoryName(result)); File.WriteAllText(result, ex.ToString(), new UTF8Encoding(true)); } catch { }
                 }
                 if (args.Length == 0) MessageBox.Show(ex.Message, L10n.T("無法啟動左右聲道互換"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return 1;
@@ -112,7 +119,9 @@ namespace ChannelFlip
             using (var core = Assembly.GetExecutingAssembly().GetManifestResourceStream("ChannelFlip.Native.dll"))
                 text.AppendLine("Embedded native core: " + (core == null ? "MISSING" : core.Length + " bytes"));
             text.AppendLine("Audio host setting consent required: " + Engine.NeedsAudioHostPermission());
-            foreach (var device in AudioDevices.Enumerate())
+            var snapshot = AudioDevices.ReadSnapshot();
+            foreach (var diagnostic in snapshot.Diagnostics) text.AppendLine("Enumeration: " + diagnostic);
+            foreach (var device in snapshot.Devices)
             {
                 var state = Engine.Read(device.Guid);
                 text.AppendLine(device.DisplayName + " | " + device.Id);

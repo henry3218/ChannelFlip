@@ -7,6 +7,16 @@ using System.Threading.Tasks;
 
 namespace ChannelFlip
 {
+    public sealed class OperationResult
+    {
+        public string DeviceId { get; internal set; }
+        public string DeviceName { get; internal set; }
+        public LocalizedText Operation { get; internal set; }
+        public LocalizedText Error { get; internal set; }
+        public bool Failed { get; internal set; }
+        public string ErrorText { get { return L10n.T("未完成的操作：{0}\n原裝置：{1}\n{2}", Operation,
+            DeviceName ?? L10n.T("所有裝置"), Error); } }
+    }
     public sealed class AudioSession
     {
         public readonly IAudioBackend Backend;
@@ -17,7 +27,8 @@ namespace ChannelFlip
         public OutputDevice Selected;
         public EngineStatus State = new EngineStatus();
         public SetupScope Scope = new SetupScope();
-        public string ReadError, ScopeError;
+        public string ReadError, ScopeError, EnumerationError;
+        public OperationResult LastOperation { get; private set; }
         private LocalizedText message, errorDetail;
         public string Message { get { return LocalizedText.Render(message); } set { message = value; } }
         public string ErrorDetail { get { return LocalizedText.Render(errorDetail); } set { errorDetail = value; } }
@@ -37,14 +48,19 @@ namespace ChannelFlip
             try
             {
                 Devices = Backend.Enumerate(); Selected = Preference.Resolve(Devices);
+                EnumerationError = String.Join("\n", Backend.EnumerationDiagnostics);
                 if (Selected != null && Selected.Offline) Devices.Insert(0, Selected);
                 // A successful instruction to test is stale once its endpoint disconnects.
                 // Keep failure details, and do not hide later global-operation results while offline.
                 if (Selected != null && Selected.Offline && !previouslyOffline && !MessageError) Message = null;
                 if (previousId != (Selected == null ? null : Selected.Id))
                 {
-                    Observation.Reset(); Message = null; ErrorDetail = null; MessageError = false;
-                    if (Preference.FollowDefault && previousId != null && Selected != null) message = L10n.M("操作目標已跟隨系統預設改為「{0}」。", Selected.Name);
+                    Observation.Reset();
+                    if (!MessageError)
+                    {
+                        Message = null; ErrorDetail = null;
+                        if (Preference.FollowDefault && previousId != null && Selected != null) message = L10n.M("操作目標已跟隨系統預設改為「{0}」。", Selected.Name);
+                    }
                 }
                 State = Selected == null || Selected.Guid == null ? new EngineStatus() : Backend.Read(Selected.Guid);
                 Observation.Sample(Selected == null ? null : Selected.Id, State,
@@ -59,12 +75,12 @@ namespace ChannelFlip
         public void Select(OutputDevice device)
         {
             if (Busy || device == null) return;
-            Preference.Id = device.Id; Preference.Name = device.Name; Preference.FollowDefault = false; Refresh();
+            Preference.Id = device.Id; Preference.EndpointGuid = device.Guid; Preference.Name = device.Name; Preference.FollowDefault = false; Refresh();
         }
         public void SetFollow(bool follow)
         {
             if (Busy) return;
-            if (!follow && Selected != null) { Preference.Id = Selected.Id; Preference.Name = Selected.Name; }
+            if (!follow && Selected != null) { Preference.Id = Selected.Id; Preference.EndpointGuid = Selected.Guid; Preference.Name = Selected.Name; }
             Preference.FollowDefault = follow; Refresh();
         }
         private OutputDevice RequireDevice(string id)
@@ -77,15 +93,17 @@ namespace ChannelFlip
         private async Task Run(string targetId, LocalizedText progress, Func<Task<LocalizedText>> action)
         {
             if (Busy) return;
+            var target = Devices.FirstOrDefault(d => d.Id == targetId);
+            LastOperation = new OperationResult { DeviceId = targetId, DeviceName = target == null ? targetId : target.Name, Operation = progress };
             Busy = true; message = progress; MessageError = false; ErrorDetail = null; Notify();
             try { message = await action(); }
             catch (OperationCanceledException) { message = L10n.M("已取消這次操作。"); }
             catch (Exception ex) { message = L10n.M("操作未完成，請檢查下方狀態或錯誤詳情。"); ErrorDetail = ex.Message; MessageError = true; }
             finally
             {
+                LastOperation.Failed = MessageError; LastOperation.Error = errorDetail;
                 Busy = false; Refresh();
-                // Refresh discards a completed operation's message if following selected a new endpoint.
-                if (targetId != null && (Selected == null || Selected.Id != targetId)) { message = L10n.M("操作目標已變更，請查看目前裝置的狀態。"); ErrorDetail = null; MessageError = false; Notify(); }
+                if (!MessageError && targetId != null && (Selected == null || Selected.Id != targetId)) { message = L10n.M("操作目標已變更，請查看目前裝置的狀態。"); ErrorDetail = null; Notify(); }
             }
         }
         public Task SetupAsync(string targetId, bool allowHostChange)
@@ -133,6 +151,7 @@ namespace ChannelFlip
                     Observation.RecordTest(channel, passed, failure, Clock());
                     if (!passed)
                     {
+                        MessageError = true;
                         errorDetail = L10n.M("測試處理計數：{0} → {1}\n互換計數：{2} → {3}\n音訊宿主 PID：{4}\n核心錯誤：0x{5}",
                             before.Frames, after.Frames, before.SwappedFrames, after.SwappedFrames, after.HostProcess, after.Error.ToString("X8"));
                         return L10n.M("測試未通過，可展開錯誤詳情。");

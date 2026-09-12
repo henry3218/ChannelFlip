@@ -37,7 +37,7 @@ class Format : public IAudioMediaType {
 public:
     UNCOMPRESSEDAUDIOFORMAT data;
     WAVEFORMATEX wave={};
-    Format(UINT channels=2,FLOAT rate=48000) : data{FloatId,channels,4,32,rate,channels==2?3u:0u} {}
+    Format(UINT channels=2,FLOAT rate=48000) : data{FloatId,channels,4,32,rate,channels==1?4u:channels==2?3u:channels==6?0x3fu:channels==8?0x63fu:0u} {}
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID,void** p) override { if(!p)return E_POINTER;*p=this;AddRef();return S_OK; }
     ULONG STDMETHODCALLTYPE AddRef() override { return 2; }
     ULONG STDMETHODCALLTYPE Release() override { return 1; }
@@ -158,8 +158,10 @@ public:
     ULONG STDMETHODCALLTYPE Release() override {return --refs;}
 };
 
+#include "NativeStress.h"
+
 int wmain(int argc,wchar_t** argv) {
-    if(argc!=3)return 64;
+    if(argc!=3&&argc!=4)return 64;
     CoInitializeEx(nullptr,COINIT_MULTITHREADED);
     HMODULE library=LoadLibraryW(argv[1]);if(!library){printf("LoadLibrary error %lu\n",GetLastError());return 2;}
     auto create=(HRESULT(WINAPI*)(REFCLSID,REFIID,void**))GetProcAddress(library,"DllGetClassObject");
@@ -204,6 +206,18 @@ int wmain(int argc,wchar_t** argv) {
             Check(x.apo->IsOutputFormatSupported(&stereo,&wrongRate,&supported)==APOERR_FORMAT_NOT_SUPPORTED,"Sample rate mismatch rejected");
             Check(x.apo->IsInputFormatSupported(nullptr,&integer,&supported)==APOERR_FORMAT_NOT_SUPPORTED,"Integer DSP buffers rejected");
             Check(x.Lock(stereo,mono)==APOERR_FORMAT_NOT_SUPPORTED,"Channel count mismatch rejected");
+            Format backStereo;backStereo.data.dwChannelMask=0x30;
+            Check(x.Lock(backStereo,backStereo)==APOERR_FORMAT_NOT_SUPPORTED,"F07 layout missing front left/right rejected");
+            Format zeroStereo;zeroStereo.data.dwChannelMask=0;
+            Check(x.apo->IsInputFormatSupported(&stereo,&zeroStereo,&supported)==S_OK,"F07 zero-mask stereo explicitly means front left/right");if(supported)supported->Release();
+            Format zeroMulti(6);zeroMulti.data.dwChannelMask=0;
+            Check(x.apo->IsInputFormatSupported(nullptr,&zeroMulti,&supported)==APOERR_FORMAT_NOT_SUPPORTED,"F07 zero-mask multichannel layout is ambiguous and rejected");
+            Format sideSurround(6);sideSurround.data.dwChannelMask=0x60f;
+            Check(x.Lock(surround,sideSurround)==APOERR_FORMAT_NOT_SUPPORTED,"F07 equal channel counts with different positions rejected");
+            Format badMask(6);badMask.data.dwChannelMask=3;
+            Check(x.Lock(badMask,badMask)==APOERR_FORMAT_NOT_SUPPORTED,"F07 mask bit count must match channel count");
+            Format zeroMono(1);zeroMono.data.dwChannelMask=0;
+            Check(x.apo->IsInputFormatSupported(&mono,&zeroMono,&supported)==S_OK,"F07 zero-mask mono explicitly passes through as center");if(supported)supported->Release();
             Check(x.Lock(stereo,stereo)==S_OK,"Matching float stereo locks");
             Check(x.Lock(stereo,stereo)==APOERR_APO_LOCKED,"Repeated lock rejected");
             UINT32 channels=0;HNSTIME latency=-1;
@@ -243,6 +257,43 @@ int wmain(int argc,wchar_t** argv) {
             float values[]={1,2,3,4,5,6,7,8,9,10,11,12},output[12]={};const float expected[]={2,1,3,4,5,6,8,7,9,10,11,12};
             env.state->enabled=1;x.Process(output,values,2);
             Check(!memcmp(expected,output,sizeof(expected)),"Six channels swap only front L/R; other channels preserved");
+        }
+        {
+            Format eight(8);Instance x;x.Create(factory);x.Init(properties);
+            Check(x.Lock(eight,eight)==S_OK,"F07 eight-channel speaker layout locks");
+            float values[]={1,2,3,4,5,6,7,8},output[8]={};const float expected[]={2,1,3,4,5,6,7,8};
+            env.state->enabled=1;x.Process(output,values,1);
+            Check(!memcmp(expected,output,sizeof(expected)),"F07 eight channels preserve center, LFE, rear and side speakers");
+        }
+        auto failLock=(void(WINAPI*)(LONG))GetProcAddress(library,"ChannelFlipTestFailLock");
+        auto heldLocks=(LONG(WINAPI*)())GetProcAddress(library,"ChannelFlipTestHeldLocks");
+        if(failLock&&heldLocks) {
+            LONG required=0;
+            {
+                Instance x;x.Create(factory);x.Init(properties);Check(x.Lock(stereo,stereo)==S_OK,"F03 instrumented resident lock succeeds");required=heldLocks();
+                Check(required>=3,"F03 image, dedicated instance and shared mapping are resident");
+            }
+            Check(heldLocks()==0,"F03 release unlocks all owned ranges");
+            for(LONG fail=1;fail<=required;++fail) {
+                Instance x;x.Create(factory);x.Init(properties);failLock(fail);
+                HRESULT hr=x.Lock(stereo,stereo);
+                Check(hr==HRESULT_FROM_WIN32(ERROR_WORKING_SET_QUOTA)&&env.state->error==hr,"F03 lock failure is returned and recorded");
+                Check(heldLocks()==0,"F03 partial lock failure releases earlier ranges");
+                failLock(0);Check(x.Lock(stereo,stereo)==S_OK&&env.state->error==0,"F03 failed lock can be retried after recovery");
+            }
+            {
+                Instance x,y;x.Create(factory);x.Init(properties);y.Create(factory);y.Init(properties);
+                x.Lock(stereo,stereo);LONG first=heldLocks();y.Lock(stereo,stereo);
+                Check(heldLocks()==first+2,"F03 concurrent instances share one image residency reference");
+                x.config->UnlockForProcess();Check(heldLocks()==first,"F03 unlocking one instance does not unpin the other's image");
+                float values[]={1,2},output[2]={};env.state->enabled=1;y.Process(output,values,1);
+                Check(output[0]==2&&output[1]==1,"F03 remaining instance still processes after peer unlock");
+            }
+            Check(heldLocks()==0,"F03 final shared image reference releases all ranges");
+        }
+        if(argc==4) {
+            Instance x;x.Create(factory);x.Init(properties);env.state->enabled=1;
+            if(x.Lock(stereo,stereo,480)==S_OK)RunStress(x,argv[3]);else Check(false,"F03 pressure test process lock");
         }
         {
             env.state->magic=0;Instance x;x.Create(factory);Check(x.Init(properties)==S_OK,"Damaged state file degrades to pass-through");x.Lock(stereo,stereo);

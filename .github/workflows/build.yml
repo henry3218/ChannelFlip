@@ -21,15 +21,15 @@ jobs:
         run: .\tools\verify-translations.ps1
       - name: Download and verify pinned build dependencies
         run: .\tools\bootstrap.ps1
-      - name: Build and test settings and test tones
+      - name: Build and test managed app, native core and crash recovery
         run: .\build.ps1 -Test
-      - name: Test native DLL using Microsoft SDK interfaces
-        run: .\tests\native-tests.ps1
       - name: Verify standalone package without hardware diagnostics
         run: .\tools\verify-package.ps1 -SkipDeviceDiagnostics
       - name: Render isolated UI scenarios
         run: .\tools\verify-ui.ps1
       - name: Stage local preview package
+        run: .\tests\package-tests.ps1
+      - name: Package the verified EXE
         run: .\tools\package-release.ps1
       - name: Upload preview build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -37,3 +37,14 @@ jobs:
           name: ChannelFlip-windows-x64-preview
           path: dist/*
           if-no-files-found: error
+      - name: Preserve validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ChannelFlip-validation-evidence
+          path: |
+            work/native-tests.txt
+            work/native-fault-tests.txt
+            work/native-pressure.json
+            app/BUILD_RECORD.json
+            app/TEST_RESULTS.json

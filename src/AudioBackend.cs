@@ -20,6 +20,7 @@ namespace ChannelFlip
     public interface IAudioBackend
     {
         List<OutputDevice> Enumerate();
+        string[] EnumerationDiagnostics { get; }
         EngineStatus Read(string id);
         SetupScope Scope();
         bool HostAlive(int pid);
@@ -31,7 +32,12 @@ namespace ChannelFlip
     }
     public sealed class WindowsAudioBackend : IAudioBackend
     {
-        public List<OutputDevice> Enumerate() { return AudioDevices.Enumerate(); }
+        public string[] EnumerationDiagnostics { get; private set; }
+        public WindowsAudioBackend() { EnumerationDiagnostics = new string[0]; }
+        public List<OutputDevice> Enumerate()
+        {
+            var snapshot = AudioDevices.ReadSnapshot(); EnumerationDiagnostics = snapshot.Diagnostics.ToArray(); return snapshot.Devices;
+        }
         public EngineStatus Read(string id) { return Engine.Read(id); }
         public SetupScope Scope() { return Engine.ReadScope(); }
         public bool NeedsHostChange() { return Engine.NeedsAudioHostPermission(); }
@@ -72,6 +78,7 @@ namespace ChannelFlip
     // the registry, preferences, or the real test-tone player.
     public sealed class SimulationBackend : IAudioBackend
     {
+        public string[] EnumerationDiagnostics { get { return new string[0]; } }
         public List<OutputDevice> Devices = new List<OutputDevice>();
         public Dictionary<string, EngineStatus> States = new Dictionary<string, EngineStatus>();
         public SetupScope Setup = new SetupScope { Signature = "simulation" };

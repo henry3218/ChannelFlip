@@ -4,13 +4,13 @@ Channel Flip uses the MIT license for its own source code. Contributions are acc
 
 ## Build on Windows x64
 
-Use 64-bit PowerShell. The checked-in build scripts use .NET Framework 4.x and a pinned Zig toolchain; no Visual Studio or NuGet packages are required.
+Use 64-bit PowerShell in a Git checkout. The checked-in build scripts use .NET Framework 4.x and a pinned Zig toolchain; no Visual Studio or NuGet packages are required.
 
 ```powershell
 .\tools\bootstrap.ps1
 .\build.ps1 -Test
-.\tests\native-tests.ps1
 .\tools\verify-package.ps1
+.\tests\package-tests.ps1
 ```
 
 The preparation script verifies SHA-256 hashes from `dependencies.lock.json`. Downloaded compilers and Microsoft SDK headers stay in the ignored `work/` directory. SDK headers retain their original licenses and are not redistributed in source or release archives.
@@ -20,6 +20,8 @@ The preparation script verifies SHA-256 hashes from `dependencies.lock.json`. Do
 Keep the real-time audio callback bounded and free of allocation, locking, logging, or file I/O. Preserve existing endpoint effects and reversible setup. Changes to registration, access control, recovery, or state layout need relevant regression checks.
 
 The normal tests use a private registry tree and do not attach an APO to a playback device. Do not run privileged attachment commands in CI. On a machine without audio hardware, use `verify-package.ps1 -SkipDeviceDiagnostics` for the packaging checks.
+
+`build.ps1 -Test` runs managed regression tests, isolated child-process crash/recovery tests, the shipped native DLL, a separately built fault-injection DLL, and the pressure harness. Fault-injection exports are absent from the shipped core. See [reliability verification](docs/RELIABILITY.md) for the memory inventory, speaker-mask policy and physical acceptance limits.
 
 Hardware testing must explicitly record device model, Windows build, normal and swapped L/R playback, closing/reopening the app, service/device reconnect, and removal/restoration. Passing offline tests does not prove system-wide operation or DRM compatibility.
 

@@ -789,4 +789,17 @@ Core error: 0x{5}</en>
     <zh>Windows 音效</zh>
     <en>Windows sound</en>
   </text>
+  <text><zh>未完成的操作：{0}
+原裝置：{1}
+{2}</zh><en>Failed operation: {0}
+Original device: {1}
+{2}</en></text>
+  <text><zh>所有裝置</zh><en>All devices</en></text>
+  <text><zh>無法讀取音訊裝置 {0}：{1}</zh><en>Could not read audio device {0}: {1}</en></text>
+  <text><zh>無法讀取預設音訊裝置：{0}</zh><en>Could not read the default audio device: {0}</en></text>
+  <text><zh>系統設定鎖的權限不符，已停止操作。請重新啟動 Windows 後再試。</zh><en>The system configuration lock has unexpected permissions. The operation was stopped. Restart Windows and try again.</en></text>
+  <text><zh>另一個程序仍在修改音訊設定，請稍後再試。</zh><en>Another process is still changing audio settings. Try again later.</en></text>
+  <text><zh>權限復原紀錄的存取權不符，已停止系統操作。</zh><en>The permission recovery journal has unexpected access rights. System changes were stopped.</en></text>
+  <text><zh>偵測到外部權限變更，已停止復原並保留紀錄：{0}</zh><en>Permissions were changed externally. Recovery was stopped and its journal retained: {0}</en></text>
+  <text><zh>無法確認原始權限已還原，已保留復原紀錄：{0}</zh><en>Original permissions could not be verified. The recovery journal was retained: {0}</en></text>
 </translations>

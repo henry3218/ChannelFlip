@@ -1,10 +1,11 @@
-param([switch]$SkipDeviceDiagnostics)
+param([switch]$SkipDeviceDiagnostics, [string]$BuildDirectory)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
+if (-not $BuildDirectory) { $BuildDirectory = Join-Path $projectRoot 'app' }
 $isolated = Join-Path $projectRoot ('work\standalone-check-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $isolated | Out-Null
 $exe = Join-Path $isolated 'ChannelFlip.exe'
-Copy-Item -LiteralPath (Join-Path $projectRoot 'app\ChannelFlip.exe') -Destination $exe
+Copy-Item -LiteralPath (Join-Path $BuildDirectory 'ChannelFlip.exe') -Destination $exe
 $operations = @(@('--render-preview','preview-v2.png'),@('--licenses','notices-from-exe.txt'))
 $operations += ,@('--render-preview','preview-english.png','en')
 if (-not $SkipDeviceDiagnostics) { $operations += ,@('--diagnose','diagnostic-v2.txt') }
@@ -71,4 +72,4 @@ while ((U32 ($descriptor + 12)) -ne 0) {
     $descriptor += 20
 }
 Write-Output ('PASS native dependencies exist in Windows System32: ' + ($imports -join ', '))
-Get-FileHash -LiteralPath (Join-Path $projectRoot 'app\ChannelFlip.exe'),(Join-Path $projectRoot 'work\native\ChannelFlipApo.dll') -Algorithm SHA256 | Format-Table -AutoSize
+Get-FileHash -LiteralPath (Join-Path $BuildDirectory 'ChannelFlip.exe'),(Join-Path $projectRoot 'work\native\ChannelFlipApo.dll') -Algorithm SHA256 | Format-Table -AutoSize
