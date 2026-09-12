@@ -4,9 +4,9 @@ Tested September 12–13, 2026 (Asia/Taipei), on Windows 11 build 26200 x64 with
 
 測試環境為 Windows 11 build 26200 x64、MOMENTUM 4、Windows 共用模式。已安裝核心與執行中的程式均符合下方固定產物的雜湊。
 
-**Status: live processing and continuous pressure passed; full F03 acceptance remains pending on sleep/resume and listening confirmation.**
+**Status: live processing, continuous pressure and listening passed. The user deferred actual sleep/resume testing to keep Mobile Hotspot active; full F03 acceptance is not marked complete.**
 
-**狀態：即時處理與連續播放壓力測試通過；完整 F03 驗收仍待睡眠／喚醒與聽感確認。**
+**狀態：即時處理、連續播放壓力測試與聽感確認通過。使用者決定保留行動熱點、暫緩真正睡眠／喚醒測試；F03 不標記為完整驗收通過。**
 
 ## Results / 結果
 
@@ -17,8 +17,8 @@ Tested September 12–13, 2026 (Asia/Taipei), on Windows 11 build 26200 x64 with
 | Real switch behavior / 實際開關 | WASAPI playback advanced processing without swapping when disabled, and advanced swap counters when enabled. Processing ran in AudioDG. 關閉時正常處理且不互換；開啟時互換計數增加，宿主為 AudioDG。 |
 | Continuous pressure / 連續播放壓力 | A single 32-second stream with 512 MiB of touched memory cycled off/on/off/on in 8-second stages. All four stages matched their expected counter behavior. 同一音訊串流連續播放 32 秒，512 MiB 記憶體持續觸頁，每 8 秒交替關閉／開啟，四階段計數皆符合預期。 |
 | Continuous-run ETW / 連續播放追蹤 | No audio Glitch events, no AudioDG hard faults, and no lost ETW events were recorded in that trace. 該追蹤未記錄到音訊 Glitch 事件、AudioDG 硬分頁錯誤或 ETW 事件遺失。 |
-| Sleep/resume / 睡眠喚醒 | The user reported waking the PC; a second short-tone run passed afterward. The System log had no matching suspend/resume events, and `powercfg /lastwake` returned zero entries. The exact sleep action still needs confirmation. 使用者回報已喚醒，後續短音測試通過；System 記錄沒有對應睡眠／恢復事件，`powercfg /lastwake` 為 0 筆，仍待確認實際睡眠操作。 |
-| Listening / 聽感 | Direction and audible interruptions for this binary are awaiting user confirmation. 此版本的左右方向與有無可聽見的中斷仍待使用者確認。 |
+| Sleep/resume / 睡眠喚醒 | The user clarified that the first attempt only turned off the display. A second attempt used the requested Windows Sleep flow, but neither System events nor the power API established actual sleep/resume. See the power finding below. 使用者澄清第一輪只關閉螢幕；第二輪依要求操作 Windows 睡眠，但 System 事件與電源 API 均未建立實際睡眠／喚醒證據，原因線索見下方。 |
+| Listening / 聽感 | The user confirmed the left source reached the right ear, the right source reached the left ear, and there was no audible distortion or sudden interruption. 使用者確認左右互換方向正確，沒有破音或突然中斷。 |
 
 ## Trace findings / 追蹤發現
 
@@ -34,9 +34,23 @@ Direct callback timing comes from the separate isolated harness: 5,000 callbacks
 
 回呼耗時另由隔離宿主量測：5,000 次、每次 480 影格、64 MiB 壓力、50 次工作集驅逐；平均 **0.000685 ms**、p99 **0.001100 ms**、最大 **0.003000 ms**，10 ms 逾時及無效緩衝區均為 0。量測區間的 200 次程序 page fault 包含測試宿主與計時 API。ETW 取樣不是每次實際回呼的耗時計時；Audio profile 的硬分頁事件也不涵蓋全部軟分頁錯誤。
 
-These are bounded observations on one machine, not a universal latency or compatibility guarantee. Windows 10 remains untested. Both WPR recordings have stopped; raw ETL files and device diagnostics remain private.
+These are bounded observations on one machine, not a universal latency or compatibility guarantee. Windows 10 remains untested. All WPR recordings have stopped; raw ETL files and device diagnostics remain private.
 
-以上為單台電腦、有限工作負載的觀察，不是所有情境的延遲或相容性保證；Windows 10 未驗收。兩次 WPR 錄製均已停止，原始 ETL 與裝置診斷保持私有。
+以上為單台電腦、有限工作負載的觀察，不是所有情境的延遲或相容性保證；Windows 10 未驗收。全部 WPR 錄製均已停止，原始 ETL 與裝置診斷保持私有。
+
+## Sleep attempt follow-up / 睡眠重試
+
+A third trace covered the second requested sleep attempt and another 32-second pressure stream. It recorded zero Glitch events, zero AudioDG hard faults and zero lost events. However, there were no corresponding System sleep/resume events, `powercfg /lastwake` returned zero entries, and successful [CallNtPowerInformation](https://learn.microsoft.com/en-us/windows/win32/api/powerbase/nf-powerbase-callntpowerinformation) queries returned zero for both `LastSleepTime` and `LastWakeTime`. Recorded kernel events continued throughout the trace, with a maximum gap of 7.060 ms. This trace is not counted as verified sleep/resume.
+
+第三份追蹤涵蓋第二次睡眠操作及另一輪 32 秒壓力播放，Glitch、AudioDG 硬分頁錯誤及事件遺失均為 0。但 System 仍無對應睡眠／恢復事件，`powercfg /lastwake` 為 0 筆，成功的電源 API 查詢也回傳 `LastSleepTime=0`、`LastWakeTime=0`；核心事件持續記錄，最大間隔為 7.060 ms。因此不將這份追蹤計為已驗證的睡眠喚醒。
+
+An elevated `powercfg /requests` query identified the Windows Mobile Hotspot service (`icssvc`) requesting **AWAYMODE** as well as SYSTEM. Microsoft's [away-mode documentation](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setthreadexecutionstate) explains that sleep actions enter away mode while that mode is active: the PC appears asleep but continues working. This is consistent with the observed lack of sleep. The user chose to keep hotspot active and defer sleep testing. Network settings were not changed, and the third WPR recording has also stopped.
+
+管理員電源查詢找到 Windows 行動熱點服務 `icssvc` 同時要求 **AWAYMODE** 與 SYSTEM。Microsoft 說明指出離開模式啟用時，睡眠操作會改進入此模式，電腦看似睡眠但仍執行工作；這與本次觀察一致。使用者選擇保留熱點、暫緩睡眠測試。網路設定未修改，第三次 WPR 也已停止。
+
+The first counter check in this follow-up sampled immediately after switching and reported a failure when one 480-frame block crossed the boundary. The probe was corrected to measure a settled interval starting 500 ms after each switch and ending before the next switch. The repeated four-stage check passed with no core error. This changed only the private measurement helper; the application and native DLL were not rebuilt. The corrected counter repeat ran after tracing stopped and is not presented as a separately traced run.
+
+這輪初次計數檢查在切換後立刻取樣，因一個 480 影格區塊跨越邊界而回報失敗。已將私有量測工具改為切換後 500 ms 才取基準、下次切換前取結束值；重測四階段通過，核心錯誤為 0。僅修正量測工具，程式與原生 DLL 未重建；修正後的計數重測發生於追蹤停止後，不宣稱該重測另有 ETW。
 
 ## Frozen artifacts / 固定產物
 
@@ -52,5 +66,6 @@ The documentation can be updated after testing; it does not change this binary's
 | `ChannelFlip-2.3.0-preview.1-windows-x64.zip` SHA-256 | `7f96abc3f842fd3be74480df86b8647fd08033e6af16b4f6fdcbb07c021a82de` |
 | Short-tone ETL SHA-256 | `07ff4f0aa90e7871453cc6062707cea106a305cb1af42f0dde12d732f186daa3` |
 | Continuous ETL SHA-256 | `e3b59a8cd651afe5c8098dc0ad223c610bd35827344323cf3ac4fe745229074d` |
+| Second sleep-attempt ETL SHA-256 | `4adab51030cc8c66a253141507e23dd05f061779b0823d0496c3078abbc7591b` |
 
 Local records: `work/reliability-hardware/`, including `core-ready.xml`, both `*-pressure.xml` files, `live-audio-after-resume.log`, `continuous/continuous.xml`, the two private trace summaries and `hardware-hashes.json`. ETL parsing used Microsoft's [TraceEvent library](https://github.com/microsoft/perfview/blob/main/documentation/TraceEvent/TraceEventProgrammersGuide.md), version 3.1.8, in the ignored test workspace only; it is not an application dependency.
