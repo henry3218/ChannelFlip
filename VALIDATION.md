@@ -1,5 +1,27 @@
 # 獨立版驗證紀錄
 
+**繁體中文** | [English](VALIDATION.en.md)
+
+## 2.2.0 繁體中文與英文
+
+日期：2026-09-12。Windows 11 build 26200，x64。本輪新增英文、語言選單與雙語文件；原生音訊 DLL 未修改。
+
+- **281 項 C# 測試通過，0 失敗**。在 2.1.1 的 184 項上新增 97 項，涵蓋語言選擇與偏好保存、兩種語言的格式參數、英文可存取名稱和朗讀語言中繼資料、切換後保留裝置／互換設定／測試時間／聽感確認，以及錯誤和閒置訊息的即時翻譯。
+- **180 組雙語訊息檢查通過**：英文無遺漏、格式參數一致，C# 和 XAML 自有中文文案均對應翻譯表；語言選單保留各語言自稱。Windows 提供的裝置名稱和技術例外內容不強制翻譯。
+- **94 組隔離畫面產生成功**，即原本 47 組情境各以中英文呈現。檢視英文已確認閒置、小視窗 225% 文字、高對比核心錯誤及中文首次設定代表畫面；自動測試另驗證兩語言全部 14 種狀態在小視窗的測試鍵可見性，以及大文字下無水平捲動、進階入口可達。
+- **單一 EXE 驗證通過**：獨立目錄只放 EXE，成功產生中英文預覽、唯讀診斷與授權輸出。內嵌 DLL 與已測試的原生 DLL 完全相同，相依全部由 Windows System32 提供。
+- 正式 2.2.0 視窗已實際從繁體中文切換英文，主畫面、按鈕、無障礙名稱、使用說明對話框均更新。關閉並重新開啟後仍使用保存的英文偏好；唯讀診斷確認核心沒有錯誤，MOMENTUM 4 的固定目標及已開啟互換保持不變；本輪沒有重新接入核心或重新啟動音訊服務。
+
+本輪未重新進行英文 Narrator 人工聽讀、實體耳機方向聽測、Windows 文字大小／高對比設定切換或跨螢幕拖曳。英文語音中繼資料與排版的自動檢查不能取代上述驗收。2.1.1 的人工結果保留於下方，適用於當時版本與環境；Windows 10 仍未實測。
+
+本機紀錄：`work/english-build-tests.txt`、`work/english-ui-renders.txt`、`work/english-ui-validation/cases.json`、`work/english-package-verification.txt`。私人診斷與桌面資料不加入公開倉庫。公開 CI 的每次結果另見 [GitHub Actions](https://github.com/henry3218/ChannelFlip/actions/workflows/build.yml)。
+
+2.2.0 EXE SHA-256：`44F3C8063E1D65C8CB16FF5217E77DE15282221C2C1C7BC7C70E843FDE5EABFF`。
+
+原生 DLL SHA-256（未修改）：`F431CC7BB0AC4479C6AACB4B957A064AB073F33D15E54AEE3E7C29097F3629F4`。
+
+2.2.0 預覽包：`ChannelFlip-2.2.0-preview.1-windows-x64.zip`，提供於 [GitHub 發布頁](https://github.com/henry3218/ChannelFlip/releases/tag/v2.2.0-preview.1)。包內 `BUILD_INFO.json` 記錄來源提交、EXE 雜湊及支援語言，並附中英文使用、首次啟用及驗證說明。
+
 ## 2.1.1 閒置狀態、滑塊與無障礙修正
 
 日期：2026-09-12。Windows 11 build 26200，x64。這輪依後續三項審核意見修正；不包含 Windows 10。

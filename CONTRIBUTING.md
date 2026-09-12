@@ -25,6 +25,14 @@ Hardware testing must explicitly record device model, Windows build, normal and 
 
 Avoid committing personal logs, local endpoint identifiers, credentials, compiled outputs, or the `work/` tree. Diagnostics can contain device names and IDs; review them before sharing.
 
+## Translations
+
+The interface supports English (`en`) and Traditional Chinese (`zh-TW`). Both are embedded in the standalone EXE through `src/Translations.xml`; no external language pack is needed. Chinese source messages are the catalog keys. Use `L10n.T` for immediate text, `L10n.M` for operation messages that must follow later language changes, and `DynamicResource Ui.<source message>` for XAML text. Keep full sentences together and preserve numbered formatting placeholders in both languages.
+
+Update both translations and the corresponding English/Chinese documentation when changing user-facing behavior. Run `tools/verify-translations.ps1`, `build.ps1 -Test`, and `tools/verify-ui.ps1`. The checks cover missing messages, formatting arguments, language preference persistence, accessible names, preserved audio/test state, and small-window/large-text layouts in both languages. `--language en --simulate setup` opens an isolated English first-run example.
+
+Device names and Windows/driver diagnostics should retain their supplied values. Do not change endpoint identifiers or audio configuration when changing the interface language. Actual English Narrator speech still requires human validation.
+
 ## Pull requests
 
 Describe the user-visible change and the tests performed. State any remaining hardware or compatibility limits. Keep changes focused and preserve MIT and third-party license notices.

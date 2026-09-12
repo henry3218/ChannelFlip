@@ -1,5 +1,5 @@
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="左右聲道互換 · Channel Flip" Width="680" Height="760" MinWidth="600" MinHeight="640" WindowStartupLocation="CenterScreen"
+ Title="{DynamicResource Ui.左右聲道互換 · Channel Flip}" Width="680" Height="760" MinWidth="600" MinHeight="640" WindowStartupLocation="CenterScreen"
  Background="{DynamicResource Page}" Foreground="{DynamicResource Text}" FontFamily="Microsoft JhengHei UI, Segoe UI" FontSize="{DynamicResource Font14}" UseLayoutRounding="True" SnapsToDevicePixels="True">
  <Window.Resources>
   <SolidColorBrush x:Key="Page" Color="#101719"/><SolidColorBrush x:Key="Card" Color="#1A2729"/>
@@ -98,48 +98,51 @@
  <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
   <StackPanel x:Name="MainPanel" Margin="24,20,24,18">
    <Grid Margin="0,0,0,16"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-    <StackPanel Margin="0,0,12,0"><TextBlock Text="左右聲道互換" FontSize="{DynamicResource Font25}" FontWeight="Bold"/><TextBlock Text="CHANNEL FLIP" FontFamily="Segoe UI" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/></StackPanel>
-    <Button x:Name="Help" Grid.Column="1" Content="使用說明" Padding="11,7" VerticalAlignment="Center"/>
+    <StackPanel Margin="0,0,12,0"><TextBlock Text="{DynamicResource Ui.左右聲道互換}" FontSize="{DynamicResource Font25}" FontWeight="Bold"/><TextBlock Text="CHANNEL FLIP" FontFamily="Segoe UI" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/></StackPanel>
+    <StackPanel Grid.Column="1" Width="160" VerticalAlignment="Center">
+     <ComboBox x:Name="LanguageChoice" MinHeight="34" FontSize="{DynamicResource Font13}" AutomationProperties.Name="Language / 語言" ToolTip="Language / 語言"><ComboBoxItem Content="繁體中文"/><ComboBoxItem Content="English"/></ComboBox>
+     <Button x:Name="Help" Content="{DynamicResource Ui.使用說明}" Padding="11,6" Margin="0,5,0,0" HorizontalAlignment="Right"/>
+    </StackPanel>
    </Grid>
    <Grid Margin="0,0,0,7"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-    <TextBlock Text="輸出裝置" FontWeight="SemiBold" VerticalAlignment="Center"/>
-    <ComboBox x:Name="SelectionMode" Grid.Column="1" MinHeight="34" MinWidth="190" MaxWidth="320" FontSize="{DynamicResource Font13}" AutomationProperties.Name="裝置選取方式"><ComboBoxItem Content="固定裝置"/><ComboBoxItem Content="跟隨系統預設"/></ComboBox>
+    <TextBlock Text="{DynamicResource Ui.輸出裝置}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+    <ComboBox x:Name="SelectionMode" Grid.Column="1" MinHeight="34" MinWidth="190" MaxWidth="320" FontSize="{DynamicResource Font13}" AutomationProperties.Name="{DynamicResource Ui.裝置選取方式}"><ComboBoxItem Content="{DynamicResource Ui.固定裝置}"/><ComboBoxItem Content="{DynamicResource Ui.跟隨系統預設}"/></ComboBox>
    </Grid>
    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-    <ComboBox x:Name="Devices" AutomationProperties.Name="要操作的音訊輸出裝置"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
-    <Button x:Name="Refresh" Grid.Column="1" Content="重新整理" Margin="8,0,0,0" Padding="10,7"/>
+    <ComboBox x:Name="Devices" AutomationProperties.Name="{DynamicResource Ui.要操作的音訊輸出裝置}"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding DisplayName}" TextWrapping="Wrap"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
+    <Button x:Name="Refresh" Grid.Column="1" Content="{DynamicResource Ui.重新整理}" Margin="8,0,0,0" Padding="10,7"/>
    </Grid>
    <TextBlock x:Name="DeviceDetail" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}" Margin="0,6,0,12"/>
    <Border Background="{DynamicResource Card}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="12" Padding="16,13">
     <StackPanel>
      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-      <StackPanel VerticalAlignment="Center"><TextBlock Text="左右互換" FontWeight="SemiBold"/><TextBlock x:Name="SettingValue" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}" Margin="0,2,0,0"/></StackPanel>
-      <Button x:Name="SetupButton" Grid.Column="1" Content="設定此裝置" Background="{DynamicResource Accent}" Foreground="{DynamicResource AccentText}" FontWeight="SemiBold"/>
-      <ToggleButton x:Name="SwapSwitch" Grid.Column="1" Style="{StaticResource SwapToggle}" AutomationProperties.Name="左右互換"/>
+      <StackPanel VerticalAlignment="Center"><TextBlock Text="{DynamicResource Ui.左右互換}" FontWeight="SemiBold"/><TextBlock x:Name="SettingValue" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}" Margin="0,2,0,0"/></StackPanel>
+      <Button x:Name="SetupButton" Grid.Column="1" Content="{DynamicResource Ui.設定此裝置}" Background="{DynamicResource Accent}" Foreground="{DynamicResource AccentText}" FontWeight="SemiBold"/>
+      <ToggleButton x:Name="SwapSwitch" Grid.Column="1" Style="{StaticResource SwapToggle}" AutomationProperties.Name="{DynamicResource Ui.左右互換}"/>
      </Grid>
      <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,11,0,0"><StackPanel>
       <TextBlock x:Name="RuntimeTitle" FontSize="{DynamicResource Font17}" FontWeight="SemiBold"/>
       <TextBlock x:Name="RuntimeDetail" FontSize="{DynamicResource Font14}" Margin="0,5,0,0" Foreground="{DynamicResource Muted}"/>
      </StackPanel></Border>
      <Grid Margin="0,12,0,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-      <StackPanel><TextBlock Text="預期方向" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}"/><TextBlock x:Name="LeftMapping" FontSize="{DynamicResource Font16}" Margin="0,3,0,0"/></StackPanel>
+      <StackPanel><TextBlock Text="{DynamicResource Ui.預期方向}" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}"/><TextBlock x:Name="LeftMapping" FontSize="{DynamicResource Font16}" Margin="0,3,0,0"/></StackPanel>
       <TextBlock x:Name="RightMapping" Grid.Column="1" FontSize="{DynamicResource Font16}" VerticalAlignment="Bottom" HorizontalAlignment="Right"/>
      </Grid>
      <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="10"/><ColumnDefinition/></Grid.ColumnDefinitions>
-      <Button x:Name="TestLeft" Content="測試來源左聲道"/><Button x:Name="TestRight" Grid.Column="2" Content="測試來源右聲道"/>
+      <Button x:Name="TestLeft" Content="{DynamicResource Ui.測試來源左聲道}"/><Button x:Name="TestRight" Grid.Column="2" Content="{DynamicResource Ui.測試來源右聲道}"/>
      </Grid>
      <TextBlock x:Name="TestEvidence" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}" Margin="0,7,0,0"/>
-     <Button x:Name="ConfirmHearing" Content="我聽到的左右方向符合" FontSize="{DynamicResource Font13}" Margin="0,8,0,0" Padding="10,6" HorizontalAlignment="Left"/>
+     <Button x:Name="ConfirmHearing" Content="{DynamicResource Ui.我聽到的左右方向符合}" FontSize="{DynamicResource Font13}" Margin="0,8,0,0" Padding="10,6" HorizontalAlignment="Left"/>
     </StackPanel>
    </Border>
    <TextBlock x:Name="Message" FontSize="{DynamicResource Font14}" Margin="0,9,0,0"/>
-   <Expander x:Name="ErrorExpander" Header="錯誤詳情" FontSize="{DynamicResource Font14}" Margin="0,8,0,0" Foreground="{DynamicResource Warning}">
+   <Expander x:Name="ErrorExpander" Header="{DynamicResource Ui.錯誤詳情}" FontSize="{DynamicResource Font14}" Margin="0,8,0,0" Foreground="{DynamicResource Warning}">
     <StackPanel><TextBox x:Name="ErrorText" IsReadOnly="True" TextWrapping="Wrap" MaxHeight="120" VerticalScrollBarVisibility="Auto" Background="{DynamicResource Card}" Foreground="{DynamicResource Text}" Padding="8" Margin="0,7,0,0"/>
-     <Button x:Name="CopyError" Content="複製錯誤詳情" HorizontalAlignment="Left" Margin="0,7,0,0"/>
+     <Button x:Name="CopyError" Content="{DynamicResource Ui.複製錯誤詳情}" HorizontalAlignment="Left" Margin="0,7,0,0"/>
     </StackPanel>
    </Expander>
    <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
-    <Button x:Name="SoundSettings" Content="Windows 音效" HorizontalAlignment="Left" Padding="11,7"/><Button x:Name="Advanced" Grid.Column="1" Content="進階設定" HorizontalAlignment="Right" Padding="11,7"/>
+    <Button x:Name="SoundSettings" Content="{DynamicResource Ui.Windows 音效}" HorizontalAlignment="Left" Padding="11,7"/><Button x:Name="Advanced" Grid.Column="1" Content="{DynamicResource Ui.進階設定}" HorizontalAlignment="Right" Padding="11,7"/>
    </Grid>
   </StackPanel>
  </ScrollViewer>

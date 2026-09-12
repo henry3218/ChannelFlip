@@ -17,7 +17,12 @@ namespace ChannelFlip
         public OutputDevice Selected;
         public EngineStatus State = new EngineStatus();
         public SetupScope Scope = new SetupScope();
-        public string ReadError, ScopeError, Message, ErrorDetail;
+        public string ReadError, ScopeError;
+        private LocalizedText message, errorDetail;
+        public string Message { get { return LocalizedText.Render(message); } set { message = value; } }
+        public string ErrorDetail { get { return LocalizedText.Render(errorDetail); } set { errorDetail = value; } }
+        public void SetMessage(LocalizedText value) { message = value; }
+        public void SetErrorDetail(LocalizedText value) { errorDetail = value; }
         public bool MessageError, Busy;
         public event Action Changed;
         public UiState Presentation { get { return UiState.Evaluate(Selected, State, ReadError, Observation, Clock()); } }
@@ -39,7 +44,7 @@ namespace ChannelFlip
                 if (previousId != (Selected == null ? null : Selected.Id))
                 {
                     Observation.Reset(); Message = null; ErrorDetail = null; MessageError = false;
-                    if (Preference.FollowDefault && previousId != null && Selected != null) Message = "操作目標已跟隨系統預設改為「" + Selected.Name + "」。";
+                    if (Preference.FollowDefault && previousId != null && Selected != null) message = L10n.M("操作目標已跟隨系統預設改為「{0}」。", Selected.Name);
                 }
                 State = Selected == null || Selected.Guid == null ? new EngineStatus() : Backend.Read(Selected.Guid);
                 Observation.Sample(Selected == null ? null : Selected.Id, State,
@@ -65,53 +70,53 @@ namespace ChannelFlip
         private OutputDevice RequireDevice(string id)
         {
             var device = Backend.Enumerate().FirstOrDefault(d => d.Id == id && !d.Offline);
-            if (device == null) throw new IOException("原目標裝置已離線，這次操作已停止。請重新連接後再試。");
-            if (device.Channels < 2 || device.FormatError != null) throw new IOException("原目標裝置目前無法使用左右聲道操作。");
+            if (device == null) throw new IOException(L10n.T("原目標裝置已離線，這次操作已停止。請重新連接後再試。"));
+            if (device.Channels < 2 || device.FormatError != null) throw new IOException(L10n.T("原目標裝置目前無法使用左右聲道操作。"));
             return device;
         }
-        private async Task Run(string targetId, string progress, Func<Task<string>> action)
+        private async Task Run(string targetId, LocalizedText progress, Func<Task<LocalizedText>> action)
         {
             if (Busy) return;
-            Busy = true; Message = progress; MessageError = false; ErrorDetail = null; Notify();
-            try { Message = await action(); }
-            catch (OperationCanceledException) { Message = "已取消這次操作。"; }
-            catch (Exception ex) { Message = "操作未完成，請檢查下方狀態或錯誤詳情。"; ErrorDetail = ex.Message; MessageError = true; }
+            Busy = true; message = progress; MessageError = false; ErrorDetail = null; Notify();
+            try { message = await action(); }
+            catch (OperationCanceledException) { message = L10n.M("已取消這次操作。"); }
+            catch (Exception ex) { message = L10n.M("操作未完成，請檢查下方狀態或錯誤詳情。"); ErrorDetail = ex.Message; MessageError = true; }
             finally
             {
                 Busy = false; Refresh();
                 // Refresh discards a completed operation's message if following selected a new endpoint.
-                if (targetId != null && (Selected == null || Selected.Id != targetId)) { Message = "操作目標已變更，請查看目前裝置的狀態。"; ErrorDetail = null; MessageError = false; Notify(); }
+                if (targetId != null && (Selected == null || Selected.Id != targetId)) { message = L10n.M("操作目標已變更，請查看目前裝置的狀態。"); ErrorDetail = null; MessageError = false; Notify(); }
             }
         }
         public Task SetupAsync(string targetId, bool allowHostChange)
         {
-            return Run(targetId, "正在設定此裝置，電腦音訊會短暫中斷…", async delegate
+            return Run(targetId, L10n.M("正在設定此裝置，電腦音訊會短暫中斷…"), async delegate
             {
                 var device = RequireDevice(targetId); Observation.Reset();
                 await Backend.Attach(device.Guid, allowHostChange);
-                if (!Backend.Read(device.Guid).Attached) throw new IOException("尚未確認裝置設定完成。");
-                return "裝置已設定。請播放左右測試音，確認實際耳機方向。";
+                if (!Backend.Read(device.Guid).Attached) throw new IOException(L10n.T("尚未確認裝置設定完成。"));
+                return L10n.M("裝置已設定。請播放左右測試音，確認實際耳機方向。");
             });
         }
         public Task ToggleAsync(bool enabled)
         {
             if (Selected == null) return Task.FromResult(0);
             string id = Selected.Id;
-            return Run(id, "正在切換這個裝置的互換設定…", async delegate
+            return Run(id, L10n.M("正在切換這個裝置的互換設定…"), async delegate
             {
                 var device = RequireDevice(id); var before = Backend.Read(device.Guid);
-                if (!before.Attached) throw new IOException("此裝置尚未設定，請先使用「設定此裝置」。");
-                if (enabled && (before.Error != 0 || device.EnhancementsDisabled)) throw new IOException("請先處理目前的音訊錯誤或開啟音效強化。");
+                if (!before.Attached) throw new IOException(L10n.T("此裝置尚未設定，請先使用「設定此裝置」。"));
+                if (enabled && (before.Error != 0 || device.EnhancementsDisabled)) throw new IOException(L10n.T("請先處理目前的音訊錯誤或開啟音效強化。"));
                 await Backend.Toggle(device.Guid, enabled); Observation.Reset();
-                if (Backend.Read(device.Guid).Enabled != enabled) throw new IOException("無法確認設定已儲存。");
-                return enabled ? "互換設定已開啟，請測試方向。" : "互換設定已關閉。";
+                if (Backend.Read(device.Guid).Enabled != enabled) throw new IOException(L10n.T("無法確認設定已儲存。"));
+                return enabled ? L10n.M("互換設定已開啟，請測試方向。") : L10n.M("互換設定已關閉。");
             });
         }
         public Task TestAsync(int channel, CancellationToken cancellation)
         {
             if (Selected == null) return Task.FromResult(0);
             string id = Selected.Id;
-            return Run(id, "正在播放來源" + (channel == 0 ? "左" : "右") + "聲道…", async delegate
+            return Run(id, L10n.M("正在播放來源{0}聲道…", channel == 0 ? L10n.M("左") : L10n.M("右")), async delegate
             {
                 try
                 {
@@ -124,26 +129,26 @@ namespace ChannelFlip
                     bool passed = !before.Attached || (after.Attached && before.Enabled == after.Enabled && after.Error == 0 &&
                         after.Frames > before.Frames && Backend.HostAlive(after.HostProcess) &&
                         (before.Enabled ? after.SwappedFrames > before.SwappedFrames : after.SwappedFrames == before.SwappedFrames));
-                    string failure = "本次測試未偵測到預期的核心處理。請重試，或到進階設定檢查音訊服務。";
+                    var failure = L10n.M("本次測試未偵測到預期的核心處理。請重試，或到進階設定檢查音訊服務。");
                     Observation.RecordTest(channel, passed, failure, Clock());
                     if (!passed)
                     {
-                        ErrorDetail = "測試處理計數：" + before.Frames + " → " + after.Frames + "\n互換計數：" + before.SwappedFrames + " → " + after.SwappedFrames +
-                            "\n音訊宿主 PID：" + after.HostProcess + "\n核心錯誤：0x" + after.Error.ToString("X8");
-                        return "測試未通過，可展開錯誤詳情。";
+                        errorDetail = L10n.M("測試處理計數：{0} → {1}\n互換計數：{2} → {3}\n音訊宿主 PID：{4}\n核心錯誤：0x{5}",
+                            before.Frames, after.Frames, before.SwappedFrames, after.SwappedFrames, after.HostProcess, after.Error.ToString("X8"));
+                        return L10n.M("測試未通過，可展開錯誤詳情。");
                     }
-                    string ear = ((channel == 0) != (before.Attached && before.Enabled)) ? "左" : "右";
-                    return "來源" + (channel == 0 ? "左" : "右") + "聲道播放完成，預期從" + ear + "耳聽到。";
+                    var ear = ((channel == 0) != (before.Attached && before.Enabled)) ? L10n.M("左") : L10n.M("右");
+                    return L10n.M("來源{0}聲道播放完成，預期從{1}耳聽到。", channel == 0 ? L10n.M("左") : L10n.M("右"), ear);
                 }
                 catch (OperationCanceledException) { throw; }
-                catch (Exception ex) { Observation.RecordTest(channel, false, "測試未完成，請檢查裝置連線後重試。", Clock()); throw new IOException(ex.Message, ex); }
+                catch (Exception ex) { Observation.RecordTest(channel, false, L10n.M("測試未完成，請檢查裝置連線後重試。"), Clock()); throw new IOException(ex.Message, ex); }
             });
         }
         public Task GlobalAsync(string action, string signature)
         {
-            return Run(null, action == "off" ? "正在關閉所有已設定裝置的互換…" : "正在處理系統設定，電腦音訊可能短暫中斷…", async delegate
+            return Run(null, action == "off" ? L10n.M("正在關閉所有已設定裝置的互換…") : L10n.M("正在處理系統設定，電腦音訊可能短暫中斷…"), async delegate
             {
-                if (Backend.Scope().Signature != signature) throw new InvalidOperationException("影響範圍已改變，請重新開啟進階設定檢視清單。");
+                if (Backend.Scope().Signature != signature) throw new InvalidOperationException(L10n.T("影響範圍已改變，請重新開啟進階設定檢視清單。"));
                 Observation.Reset(); return await Backend.Global(action, signature);
             });
         }

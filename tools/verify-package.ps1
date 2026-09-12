@@ -6,12 +6,15 @@ New-Item -ItemType Directory -Path $isolated | Out-Null
 $exe = Join-Path $isolated 'ChannelFlip.exe'
 Copy-Item -LiteralPath (Join-Path $projectRoot 'app\ChannelFlip.exe') -Destination $exe
 $operations = @(@('--render-preview','preview-v2.png'),@('--licenses','notices-from-exe.txt'))
+$operations += ,@('--render-preview','preview-english.png','en')
 if (-not $SkipDeviceDiagnostics) { $operations += ,@('--diagnose','diagnostic-v2.txt') }
 foreach ($operation in $operations) {
     $report = Join-Path $projectRoot ('work\' + $operation[1])
-    $process = Start-Process -FilePath $exe -WorkingDirectory $isolated -ArgumentList @($operation[0],('"' + $report + '"')) -WindowStyle Hidden -PassThru -Wait
+    $arguments = @($operation[0],('"' + $report + '"'))
+    if ($operation.Count -gt 2) { $arguments = @('--language',$operation[2]) + $arguments }
+    $process = Start-Process -FilePath $exe -WorkingDirectory $isolated -ArgumentList $arguments -WindowStyle Hidden -PassThru -Wait
     if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $report)) { throw ('Standalone execution failed: ' + $operation[0]) }
-    Write-Output ('PASS single EXE ' + $operation[0])
+    Write-Output ('PASS single EXE ' + $operation[0] + $(if ($operation.Count -gt 2) { ' --language ' + $operation[2] }))
 }
 if (@(Get-ChildItem -LiteralPath $isolated).Count -ne 1) { throw 'Standalone directory should contain only the EXE.' }
 $assembly = [Reflection.Assembly]::LoadFile($exe)

@@ -1,4 +1,8 @@
-左右聲道互換 · 獨立版 2.1.1 預覽版
+左右聲道互換 · 獨立版 2.2.0 預覽版
+
+English instructions: README.en.txt
+右上角可切換繁體中文／English，程式會記住你的選擇。
+切換語言保留裝置、互換開關與本次聽感確認；Windows 裝置名稱不翻譯。
 
 直接執行 ChannelFlip.exe。原始碼採用 MIT 授權。
 音訊核心已包在同一個 EXE，無須 Equalizer APO、虛擬音效卡、Python 或 Node.js。

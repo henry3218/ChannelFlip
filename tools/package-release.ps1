@@ -12,7 +12,8 @@ $package = Join-Path $dist ('ChannelFlip-' + $Version + '-windows-x64.zip')
 if (Test-Path -LiteralPath $package) { throw ('Package already exists; select a new version or move it before rebuilding: ' + $package) }
 Copy-Item -LiteralPath $exe -Destination (Join-Path $stage 'ChannelFlip.exe')
 Copy-Item -LiteralPath (Join-Path $projectRoot 'app\使用說明.txt') -Destination (Join-Path $stage 'README.txt')
-foreach ($name in @('LICENSE','THIRD_PARTY_NOTICES.txt','FIRST_RUN.md','VALIDATION.md')) {
+Copy-Item -LiteralPath (Join-Path $projectRoot 'app\README.en.txt') -Destination (Join-Path $stage 'README.en.txt')
+foreach ($name in @('LICENSE','THIRD_PARTY_NOTICES.txt','FIRST_RUN.md','FIRST_RUN.en.md','VALIDATION.md','VALIDATION.en.md')) {
     Copy-Item -LiteralPath (Join-Path $projectRoot $name) -Destination (Join-Path $stage $name)
 }
 $gitCommit = $null
@@ -27,6 +28,7 @@ $info = [ordered]@{
     applicationSha256=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
     dependenciesLockSha256=(Get-FileHash -LiteralPath (Join-Path $projectRoot 'dependencies.lock.json') -Algorithm SHA256).Hash.ToLowerInvariant()
     license='MIT'
+    interfaceLanguages=@('zh-TW','en')
 }
 [IO.File]::WriteAllText((Join-Path $stage 'BUILD_INFO.json'),($info | ConvertTo-Json -Depth 4),[Text.UTF8Encoding]::new($false))
 $checksums = Get-ChildItem -LiteralPath $stage -File | Sort-Object Name | ForEach-Object {

@@ -27,7 +27,7 @@ namespace ChannelFlip
         Task Attach(string id, bool allowHostChange);
         Task Toggle(string id, bool enabled);
         Task Play(string id, int channel, CancellationToken cancellation);
-        Task<string> Global(string action, string scope);
+        Task<LocalizedText> Global(string action, string scope);
     }
     public sealed class WindowsAudioBackend : IAudioBackend
     {
@@ -47,24 +47,24 @@ namespace ChannelFlip
         public Task Attach(string id, bool allowHostChange) { return Engine.Attach(id, allowHostChange); }
         public Task Toggle(string id, bool enabled) { return Task.Run(delegate { Engine.SetEnabled(id, enabled); }); }
         public Task Play(string id, int channel, CancellationToken cancellation) { return Task.Run(delegate { TestTone.Play(id, channel, cancellation); }); }
-        public async Task<string> Global(string action, string expected)
+        public async Task<LocalizedText> Global(string action, string expected)
         {
             var scope = Engine.CheckScope(expected);
-            if (action == "restart") { await Engine.Restart(); return "電腦音訊服務已重新啟動，請重新測試方向。"; }
+            if (action == "restart") { await Engine.Restart(); return L10n.M("電腦音訊服務已重新啟動，請重新測試方向。"); }
             if (action == "off")
             {
                 await Task.Run(delegate { Engine.DisableAll(expected); });
-                return "已確認所有 " + scope.Devices.Length + " 個裝置的互換已關閉；核心與系統設定保留。";
+                return L10n.M("已確認所有 {0} 個裝置的互換已關閉；核心與系統設定保留。", scope.Devices.Length);
             }
-            if (action != "remove") throw new ArgumentException("未知的系統操作。");
+            if (action != "remove") throw new ArgumentException(L10n.T("未知的系統操作。"));
             var owned = scope.Changes.Where(e => e.MatchesAfter()).ToArray();
             var external = scope.Changes.Where(e => !e.MatchesAfter() && !e.MatchesBefore()).ToArray();
             await Engine.Remove(expected);
-            if (Engine.ReadScope().HasChanges) throw new IOException("移除尚未完成，仍有本程式的設定。請檢查進階設定中的剩餘清單。");
+            if (Engine.ReadScope().HasChanges) throw new IOException(L10n.T("移除尚未完成，仍有本程式的設定。請檢查進階設定中的剩餘清單。"));
             int unrestored = owned.Count(e => !e.MatchesBefore());
-            if (unrestored > 0) throw new IOException("本程式已解除登記，但有 " + unrestored + " 項設定未能確認還原，可能在操作期間被修改。請保留診斷資訊。");
-            return "已移除所有裝置的設定，並確認本程式管理的設定已還原。" +
-                (external.Length > 0 ? "另保留了 " + external.Length + " 項外部修改。" : "") + " 電腦音訊服務已重新啟動。";
+            if (unrestored > 0) throw new IOException(L10n.T("本程式已解除登記，但有 {0} 項設定未能確認還原，可能在操作期間被修改。請保留診斷資訊。", unrestored));
+            return L10n.M("已移除所有裝置的設定，並確認本程式管理的設定已還原。{0} 電腦音訊服務已重新啟動。",
+                external.Length > 0 ? (object)L10n.M("另保留了 {0} 項外部修改。", external.Length) : "");
         }
     }
 
@@ -100,20 +100,20 @@ namespace ChannelFlip
         {
             Calls.Add("play:" + id + ":" + channel);
             if (DuringPlay != null) await DuringPlay();
-            if (CancelPlay) throw new OperationCanceledException("已取消測試。");
+            if (CancelPlay) throw new OperationCanceledException(L10n.T("已取消測試。"));
             cancellation.ThrowIfCancellationRequested();
             var device = Devices.FirstOrDefault(d => d.Id == id);
-            if (device == null) throw new IOException("測試期間裝置已離線。");
+            if (device == null) throw new IOException(L10n.T("測試期間裝置已離線。"));
             EngineStatus s;
             if (!NoProcessing && States.TryGetValue(device.Guid, out s)) { s.Frames += 48000; if (s.Enabled) s.SwappedFrames += 48000; }
         }
-        public Task<string> Global(string action, string signature)
+        public Task<LocalizedText> Global(string action, string signature)
         {
-            if (signature != Setup.Signature) throw new InvalidOperationException("影響範圍已改變。");
+            if (signature != Setup.Signature) throw new InvalidOperationException(L10n.T("影響範圍已改變。"));
             Calls.Add(action);
             if (action == "remove") { States.Clear(); Setup = new SetupScope { Signature = "removed" }; }
             if (action == "off") foreach (var state in States.Values) state.Enabled = false;
-            return Task.FromResult("模擬操作完成：" + action);
+            return Task.FromResult(L10n.M("模擬操作完成：{0}", action));
         }
     }
 }

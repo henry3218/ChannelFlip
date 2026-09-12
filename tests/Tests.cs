@@ -153,6 +153,7 @@ public static class Tests
             }
             Throws(delegate { TestTone.Generate(48000, 1, 32, true, 0, 0, 100, 100); }, "Mono cannot claim left/right test");
             UiTests.Run(Check, directory);
+            LocalizationTests.Run(Check, directory);
         }
         catch (Exception ex) { Console.WriteLine(ex); failed++; }
         Console.WriteLine("RESULT: " + passed + " passed; " + failed + " failed");return failed == 0 ? 0 : 1;

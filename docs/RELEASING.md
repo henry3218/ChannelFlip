@@ -7,6 +7,7 @@ The project is MIT licensed. Source and binary releases must include `LICENSE` a
 From a clean Windows x64 checkout:
 
 ```powershell
+.\tools\verify-translations.ps1
 .\tools\bootstrap.ps1
 .\build.ps1 -Test
 .\tests\native-tests.ps1
@@ -15,7 +16,7 @@ From a clean Windows x64 checkout:
 .\tools\package-release.ps1
 ```
 
-The last command creates a local preview ZIP and its SHA-256 file under `dist/`. It does not create a GitHub release. The ZIP contains the EXE, user instructions, first-run changes, license notices, build information and checksums. Verify the archive contents before uploading.
+The last command creates a local preview ZIP and its SHA-256 file under `dist/`. It does not create a GitHub release. The ZIP contains the EXE, user instructions, first-run changes and validation notes in both English and Traditional Chinese, plus license notices, build information and checksums. Both UI translations are embedded in the EXE. Verify the archive contents and both languages before uploading.
 
 The GitHub Actions workflow builds and uploads a preview artifact for review. It has read-only repository permissions and does not publish releases. It omits physical-device diagnostics; hosted CI cannot validate actual headphone direction.
 
@@ -33,7 +34,7 @@ Document tested Windows builds and devices, and list bypass paths such as ASIO, 
 
 Open sourcing the program does not change Windows audio-signature requirements. Explain the protected-audio setting before users enable the unsigned core, including its system-wide scope, persistence and possible DRM impact.
 
-For a future release that keeps the protected audio host enabled, see [SIGNING.md](SIGNING.md). A generic EXE signature or an EV enrollment certificate alone is not evidence that the APO can load in that protected environment.
+For a future release that keeps the protected audio host enabled, see [SIGNING.en.md](SIGNING.en.md). A generic EXE signature or an EV enrollment certificate alone is not evidence that the APO can load in that protected environment.
 
 ## Publication
 

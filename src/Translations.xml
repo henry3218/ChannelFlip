@@ -1,0 +1,792 @@
+<translations>
+  <text>
+    <zh>
+
+本程式會備份此裝置的音效設定、接入內建音訊核心，並開啟左右互換。
+
+電腦音訊服務會重新啟動，所有裝置的聲音會短暫中斷；完成時會播放兩聲短音檢查核心。
+
+</zh>
+    <en>
+
+Channel Flip will back up this device's audio effects settings, attach the built-in audio core, and turn on left/right swapping.
+
+Windows audio services will restart, briefly interrupting sound on all devices. Two short tones will then check the core.
+
+</en>
+  </text>
+  <text>
+    <zh>
+
+所有音訊輸出的聲音會短暫中斷。</zh>
+    <en>
+
+Sound on all audio outputs will be briefly interrupted.</en>
+  </text>
+  <text>
+    <zh>
+
+影響的已設定裝置：
+</zh>
+    <en>
+
+Affected configured devices:
+</en>
+  </text>
+  <text>
+    <zh>
+
+關閉所有互換：只恢復這些裝置的左右方向，保留核心與系統設定。
+
+移除所有裝置的設定：還原本程式管理的裝置音效、核心登記及音訊宿主設定，包含離線裝置。外部程式已修改的設定會保留。
+
+重新啟動或移除時，整台電腦的音訊會短暫中斷。</zh>
+    <en>
+
+Turn off all swaps: restore the original channel direction on these devices, keeping the core and system settings.
+
+Remove all device settings: restore the device effects, core registration, and audio host settings managed by Channel Flip, including offline devices. Changes made by other programs are preserved.
+
+Restarting audio or removing settings briefly interrupts sound across the computer.</en>
+  </text>
+  <text>
+    <zh>  ·  已離線</zh>
+    <en>  ·  Offline</en>
+  </text>
+  <text>
+    <zh>  ·  系統預設</zh>
+    <en>  ·  Default</en>
+  </text>
+  <text>
+    <zh> · 模擬</zh>
+    <en> · Simulation</en>
+  </text>
+  <text>
+    <zh>（目前離線）</zh>
+    <en> (currently offline)</en>
+  </text>
+  <text>
+    <zh>1. 選擇耳機或喇叭。首次按「設定此裝置」；完成後使用左右互換開關。
+
+2. 分別測試來源左、右聲道，再依聽到的方向確認。設定開啟不代表每個播放程式都已通過核心；運作狀態以近期處理證據顯示。
+
+3. 固定裝置會保留離線目標。跟隨系統預設只更新視窗的操作目標，各裝置設定獨立保存，新裝置仍須先設定。
+
+關閉視窗後，已接入裝置的互換設定會保留。進階設定可以關閉所有互換、重新啟動電腦音訊服務，或移除所有裝置的設定。
+
+作用範圍是所選裝置的 Windows 共用模式音訊。獨佔模式、ASIO、RAW 及停用音效強化可能繞過核心；藍牙免持模式可能是另一個端點。
+
+本程式採 MIT 授權，內建自己的音訊核心，無須 Equalizer APO。未簽章預覽版的音訊宿主設定影響整台電腦，部分 DRM 音訊可能受影響。</zh>
+    <en>1. Select your headphones or speakers. Choose Set up this device the first time, then use the Swap left/right switch.
+
+2. Test the left and right source channels separately, then confirm the direction you hear. An enabled setting does not prove that every player passes through the core; processing status uses recent counter changes.
+
+3. Fixed device keeps the same target while it is offline. Follow system default updates the target shown in the window. Each device keeps its own settings; a new device still needs setup.
+
+Closing the window keeps swap settings on configured devices. Advanced settings lets you turn off all swaps, restart Windows audio services, or remove all device settings.
+
+Processing applies to the selected device's Windows shared-mode audio path. Exclusive mode, ASIO, RAW, and disabled audio enhancements may bypass the core. Bluetooth hands-free mode may use another endpoint.
+
+Channel Flip is MIT licensed and includes its own audio core; Equalizer APO is not required. This unsigned preview changes a system-wide audio host setting and may affect protected DRM audio.</en>
+  </text>
+  <text>
+    <zh>上次測試未通過 · </zh>
+    <en>Last test failed · </en>
+  </text>
+  <text>
+    <zh>上次測試完成 · {0}；實際方向待你確認。</zh>
+    <en>Last test completed · {0}. Please confirm the direction you hear.</en>
+  </text>
+  <text>
+    <zh>已存在不同版本的音訊核心。請先在進階設定移除所有裝置的設定，再設定新版。</zh>
+    <en>A different audio core version is installed. Remove all device settings in Advanced settings before setting up this version.</en>
+  </text>
+  <text>
+    <zh>已取消 Windows 管理員授權，設定未變更。</zh>
+    <en>Windows administrator approval was cancelled. Settings were not changed.</en>
+  </text>
+  <text>
+    <zh>已取消這次操作。</zh>
+    <en>Operation cancelled.</en>
+  </text>
+  <text>
+    <zh>已取消測試。</zh>
+    <en>Test cancelled.</en>
+  </text>
+  <text>
+    <zh>已保留這個裝置。重新連接，或手動選擇其他裝置。</zh>
+    <en>This device remains selected. Reconnect it or select another device.</en>
+  </text>
+  <text>
+    <zh>已偵測到互換處理</zh>
+    <en>Swap processing detected</en>
+  </text>
+  <text>
+    <zh>已移除所有裝置的設定，並確認本程式管理的設定已還原。{0} 電腦音訊服務已重新啟動。</zh>
+    <en>All device settings were removed and the changes managed by Channel Flip were restored.{0} Windows audio services have restarted.</en>
+  </text>
+  <text>
+    <zh>已確認所有 {0} 個裝置的互換已關閉；核心與系統設定保留。</zh>
+    <en>Swap is confirmed off on all configured devices ({0}). The core and system settings remain installed.</en>
+  </text>
+  <text>
+    <zh>互換已關閉</zh>
+    <en>Swap is off</en>
+  </text>
+  <text>
+    <zh>互換設定已開啟，請測試方向。</zh>
+    <en>Swap is on. Please test the channel direction.</en>
+  </text>
+  <text>
+    <zh>互換設定已開啟；播放音訊或測試音後才能確認核心處理。</zh>
+    <en>Swap is on. Play audio or a test tone to check core processing.</en>
+  </text>
+  <text>
+    <zh>互換設定已關閉。</zh>
+    <en>Swap is off.</en>
+  </text>
+  <text>
+    <zh>互換設定保持開啟，先前的處理與測試紀錄仍保留；恢復播放後會更新運作狀態。</zh>
+    <en>Swap stays on and previous processing and test results are retained. Status updates when audio resumes.</en>
+  </text>
+  <text>
+    <zh>互換設定保持開啟；上次左右方向確認仍有效，無須因暫停播放而重新測試。</zh>
+    <en>Swap stays on and your last direction confirmation is retained. Pausing playback does not require another test.</en>
+  </text>
+  <text>
+    <zh>另保留了 {0} 項外部修改。</zh>
+    <en> Changes made externally were preserved: {0}.</en>
+  </text>
+  <text>
+    <zh>可先關閉互換，或到進階設定重新啟動電腦音訊服務。</zh>
+    <en>Turn swap off, or restart Windows audio services in Advanced settings.</en>
+  </text>
+  <text>
+    <zh>可從視窗右上角切換繁體中文或 English，程式會記住你的選擇。</zh>
+    <en>Choose Traditional Chinese or English at the top right of the window. Your selection is saved.</en>
+  </text>
+  <text>
+    <zh>右</zh>
+    <en>right</en>
+  </text>
+  <text>
+    <zh>左</zh>
+    <en>left</en>
+  </text>
+  <text>
+    <zh>左右互換</zh>
+    <en>Swap left/right</en>
+  </text>
+  <text>
+    <zh>左右測試可確認實際聽到的方向。</zh>
+    <en>Use both tests to check the direction you hear.</en>
+  </text>
+  <text>
+    <zh>左右聲道互換</zh>
+    <en>Swap audio channels</en>
+  </text>
+  <text>
+    <zh>左右聲道互換 · Channel Flip</zh>
+    <en>Channel Flip · Swap left/right audio</en>
+  </text>
+  <text>
+    <zh>未知</zh>
+    <en>Unknown</en>
+  </text>
+  <text>
+    <zh>未知的系統操作。</zh>
+    <en>Unknown system operation.</en>
+  </text>
+  <text>
+    <zh>未設定</zh>
+    <en>Not set up</en>
+  </text>
+  <text>
+    <zh>本次測試未偵測到預期的核心處理。請重試，或到進階設定檢查音訊服務。</zh>
+    <en>The test did not detect the expected core processing. Try again or check audio services in Advanced settings.</en>
+  </text>
+  <text>
+    <zh>本次測試未通過</zh>
+    <en>This test did not pass</en>
+  </text>
+  <text>
+    <zh>本程式已設定 {0} 個裝置。
+</zh>
+    <en>Configured devices: {0}.
+</en>
+  </text>
+  <text>
+    <zh>本程式已解除登記，但有 {0} 項設定未能確認還原，可能在操作期間被修改。請保留診斷資訊。</zh>
+    <en>Channel Flip was unregistered, but restoration could not be confirmed for {0} settings. They may have changed during the operation. Keep the diagnostic information.</en>
+  </text>
+  <text>
+    <zh>正在切換這個裝置的互換設定…</zh>
+    <en>Updating this device's swap setting…</en>
+  </text>
+  <text>
+    <zh>正在處理…</zh>
+    <en>Working…</en>
+  </text>
+  <text>
+    <zh>正在處理系統設定，電腦音訊可能短暫中斷…</zh>
+    <en>Updating system settings. Sound may be briefly interrupted…</en>
+  </text>
+  <text>
+    <zh>正在設定此裝置，電腦音訊會短暫中斷…</zh>
+    <en>Setting up this device. Sound will be briefly interrupted…</en>
+  </text>
+  <text>
+    <zh>正在播放來源{0}聲道…</zh>
+    <en>Playing the {0} source channel…</en>
+  </text>
+  <text>
+    <zh>正在關閉所有已設定裝置的互換…</zh>
+    <en>Turning off swaps on all configured devices…</en>
+  </text>
+  <text>
+    <zh>目前沒有新音訊</zh>
+    <en>No new audio right now</en>
+  </text>
+  <text>
+    <zh>目前無法使用左右互換</zh>
+    <en>Stereo swap is unavailable</en>
+  </text>
+  <text>
+    <zh>目前無法讀取設定；請重新整理。</zh>
+    <en>The setting cannot be read. Please refresh.</en>
+  </text>
+  <text>
+    <zh>目前開啟；按空白鍵關閉此裝置的互換。</zh>
+    <en>Currently on. Press Space to turn swap off for this device.</en>
+  </text>
+  <text>
+    <zh>目前關閉；按空白鍵開啟此裝置的互換。</zh>
+    <en>Currently off. Press Space to turn swap on for this device.</en>
+  </text>
+  <text>
+    <zh>先前選取的裝置</zh>
+    <en>Previously selected device</en>
+  </text>
+  <text>
+    <zh>全域設定：</zh>
+    <en>Global settings: </en>
+  </text>
+  <text>
+    <zh>此裝置未提供系統音效設定，尚不支援直接接入。</zh>
+    <en>This device does not expose system effects settings. Direct attachment is not supported.</en>
+  </text>
+  <text>
+    <zh>此裝置目前少於兩個聲道，請切換至立體聲輸出。</zh>
+    <en>This device currently has fewer than two channels. Switch to a stereo output.</en>
+  </text>
+  <text>
+    <zh>此裝置尚未設定，請先使用「設定此裝置」。</zh>
+    <en>This device is not configured. Choose Set up this device first.</en>
+  </text>
+  <text>
+    <zh>此電腦目前已允許載入此音訊核心；本次會沿用現有的音訊宿主設定。
+
+</zh>
+    <en>This computer already allows this audio core to load. Setup will keep the existing audio host setting.
+
+</en>
+  </text>
+  <text>
+    <zh>此預覽版核心尚未取得 Microsoft 音訊簽章。首次設定需調整受保護音訊宿主設定（DisableProtectedAudioDG=1），作用於整台電腦，部分 DRM 音訊可能受影響。
+
+</zh>
+    <en>This preview core does not have a Microsoft audio signature. First-time setup requires changing the protected audio host setting (DisableProtectedAudioDG=1). This affects the whole computer and may affect protected DRM audio.
+
+</en>
+  </text>
+  <text>
+    <zh>耳機 (MOMENTUM 4)</zh>
+    <en>Headphones (MOMENTUM 4)</en>
+  </text>
+  <text>
+    <zh>自製核心未經 Microsoft WHQL 簽署，需先在主視窗同意音訊宿主設定變更。</zh>
+    <en>This core is not Microsoft WHQL signed. First approve the audio host setting change in the main window.</en>
+  </text>
+  <text>
+    <zh>你已確認左右方向符合（{0}）。</zh>
+    <en>You confirmed the channel direction ({0}).</en>
+  </text>
+  <text>
+    <zh>我聽到的左右方向符合</zh>
+    <en>I hear the expected direction</en>
+  </text>
+  <text>
+    <zh>找不到可用的立體聲輸出裝置。</zh>
+    <en>No available stereo output device was found.</en>
+  </text>
+  <text>
+    <zh>找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。</zh>
+    <en>An unfinished setup backup was found. Use Remove all device settings in Advanced settings to restore it first.</en>
+  </text>
+  <text>
+    <zh>沒有裝置；仍可能有全域設定。</zh>
+    <en>No devices; global settings may still exist.</en>
+  </text>
+  <text>
+    <zh>使用說明</zh>
+    <en>Help</en>
+  </text>
+  <text>
+    <zh>使用說明 · Channel Flip </zh>
+    <en>Help · Channel Flip </en>
+  </text>
+  <text>
+    <zh>來源{0}聲道播放完成，預期從{1}耳聽到。</zh>
+    <en>The {0} source channel finished playing. You should hear it in your {1} ear.</en>
+  </text>
+  <text>
+    <zh>來源右 → 右耳</zh>
+    <en>Source R → right ear</en>
+  </text>
+  <text>
+    <zh>來源右 → 左耳</zh>
+    <en>Source R → left ear</en>
+  </text>
+  <text>
+    <zh>來源右 → 待確認</zh>
+    <en>Source R → unknown</en>
+  </text>
+  <text>
+    <zh>來源左 → 右耳</zh>
+    <en>Source L → right ear</en>
+  </text>
+  <text>
+    <zh>來源左 → 左耳</zh>
+    <en>Source L → left ear</en>
+  </text>
+  <text>
+    <zh>來源左 → 待確認</zh>
+    <en>Source L → unknown</en>
+  </text>
+  <text>
+    <zh>取消</zh>
+    <en>Cancel</en>
+  </text>
+  <text>
+    <zh>固定此裝置；斷線時保留選取。</zh>
+    <en>Keep this device selected, even when disconnected.</en>
+  </text>
+  <text>
+    <zh>固定裝置</zh>
+    <en>Fixed device</en>
+  </text>
+  <text>
+    <zh>尚未設定</zh>
+    <en>Setup needed</en>
+  </text>
+  <text>
+    <zh>尚未確認裝置設定完成。</zh>
+    <en>Device setup could not be confirmed.</en>
+  </text>
+  <text>
+    <zh>尚無輸出裝置</zh>
+    <en>No output device</en>
+  </text>
+  <text>
+    <zh>近期音訊通過互換核心；你已確認的左右方向結果仍保留。</zh>
+    <en>Recent audio passed through the swap core. Your direction confirmation is retained.</en>
+  </text>
+  <text>
+    <zh>近期音訊通過互換核心。請用左右測試確認實際聽到的方向。</zh>
+    <en>Recent audio passed through the swap core. Test both channels to confirm the direction you hear.</en>
+  </text>
+  <text>
+    <zh>客廳電腦的無線降噪耳機 — 很長的裝置名稱，用來確認完整文字仍然可以閱讀 (MOMENTUM 4 Wireless)</zh>
+    <en>Living room wireless noise-cancelling headphones — a long device name to check readable text wrapping (MOMENTUM 4 Wireless)</en>
+  </text>
+  <text>
+    <zh>要操作的音訊輸出裝置</zh>
+    <en>Audio output device to control</en>
+  </text>
+  <text>
+    <zh>重新啟動電腦音訊服務</zh>
+    <en>Restart Windows audio services</en>
+  </text>
+  <text>
+    <zh>重新整理</zh>
+    <en>Refresh</en>
+  </text>
+  <text>
+    <zh>音效強化已關閉</zh>
+    <en>Audio enhancements are off</en>
+  </text>
+  <text>
+    <zh>音訊核心狀態檔不完整。</zh>
+    <en>The audio core state file is incomplete.</en>
+  </text>
+  <text>
+    <zh>音訊核心狀態檔無效，請在進階設定移除所有裝置的設定，再重新設定裝置。</zh>
+    <en>The audio core state file is invalid. Remove all device settings in Advanced settings, then set up the device again.</en>
+  </text>
+  <text>
+    <zh>音訊核心狀態檔無效。</zh>
+    <en>The audio core state file is invalid.</en>
+  </text>
+  <text>
+    <zh>音訊設定未完成（</zh>
+    <en>Audio setup did not finish (</en>
+  </text>
+  <text>
+    <zh>音訊設定未完成（{0}）：{1}</zh>
+    <en>Audio setup did not finish ({0}): {1}</en>
+  </text>
+  <text>
+    <zh>音訊裝置識別碼無效。</zh>
+    <en>The audio device identifier is invalid.</en>
+  </text>
+  <text>
+    <zh>音訊輸出</zh>
+    <en>Audio output</en>
+  </text>
+  <text>
+    <zh>首次設定後，即可直接開關互換。也能先測試原始方向。</zh>
+    <en>Set up this device to enable the swap switch. You can test its original direction first.</en>
+  </text>
+  <text>
+    <zh>原目標裝置已離線，這次操作已停止。請重新連接後再試。</zh>
+    <en>The original target device is offline. This operation stopped. Reconnect it and try again.</en>
+  </text>
+  <text>
+    <zh>原目標裝置目前無法使用左右聲道操作。</zh>
+    <en>The original target device cannot currently use stereo controls.</en>
+  </text>
+  <text>
+    <zh>核心異常</zh>
+    <en>Audio core error</en>
+  </text>
+  <text>
+    <zh>核心錯誤：0x</zh>
+    <en>Core error: 0x</en>
+  </text>
+  <text>
+    <zh>將重新啟動整台電腦的音訊服務。</zh>
+    <en>Windows audio services will restart for the entire computer.</en>
+  </text>
+  <text>
+    <zh>將移除上述所有裝置的設定，並還原本程式管理的系統變更。</zh>
+    <en>Settings for all listed devices will be removed, restoring the system changes managed by Channel Flip.</en>
+  </text>
+  <text>
+    <zh>將關閉上述所有裝置的互換，保留核心與系統設定。</zh>
+    <en>Swapping will turn off for all listed devices. The core and system settings will remain installed.</en>
+  </text>
+  <text>
+    <zh>移除尚未完成，仍有本程式的設定。請檢查進階設定中的剩餘清單。</zh>
+    <en>Removal is incomplete and some Channel Flip settings remain. Check the remaining list in Advanced settings.</en>
+  </text>
+  <text>
+    <zh>移除所有裝置的設定</zh>
+    <en>Remove all device settings</en>
+  </text>
+  <text>
+    <zh>設定：</zh>
+    <en>Setting: </en>
+  </text>
+  <text>
+    <zh>設定方向為原本左右；音訊核心與裝置設定仍保留。</zh>
+    <en>Channels use their original direction. The audio core and device settings remain installed.</en>
+  </text>
+  <text>
+    <zh>設定目前{0}；裝置已離線，重新連接後才能切換。</zh>
+    <en>Current setting: {0}. This device is offline. Reconnect it before changing the switch.</en>
+  </text>
+  <text>
+    <zh>設定此裝置</zh>
+    <en>Set up this device</en>
+  </text>
+  <text>
+    <zh>設定並開啟互換</zh>
+    <en>Set up and turn on swap</en>
+  </text>
+  <text>
+    <zh>設定裝置：</zh>
+    <en>Device to set up: </en>
+  </text>
+  <text>
+    <zh>這個裝置使用多重音效鏈，目前版本尚不支援安全接入。</zh>
+    <en>This device uses multiple effect registrations. This version does not support attaching safely to that setup.</en>
+  </text>
+  <text>
+    <zh>測試未完成，請檢查裝置連線後重試。</zh>
+    <en>The test did not finish. Check the device connection and try again.</en>
+  </text>
+  <text>
+    <zh>測試未通過，可展開錯誤詳情。</zh>
+    <en>The test did not pass. Expand Error details for more information.</en>
+  </text>
+  <text>
+    <zh>測試來源右聲道</zh>
+    <en>Test right source channel</en>
+  </text>
+  <text>
+    <zh>測試來源左聲道</zh>
+    <en>Test left source channel</en>
+  </text>
+  <text>
+    <zh>測試音不支援此裝置的音訊格式。</zh>
+    <en>Test tones do not support this device's audio format.</en>
+  </text>
+  <text>
+    <zh>測試處理計數：{0} → {1}
+互換計數：{2} → {3}
+音訊宿主 PID：{4}
+核心錯誤：0x{5}</zh>
+    <en>Processed frames: {0} → {1}
+Swapped frames: {2} → {3}
+Audio host PID: {4}
+Core error: 0x{5}</en>
+  </text>
+  <text>
+    <zh>測試期間未偵測到預期處理，請重試或檢查 Windows 音效設定。</zh>
+    <en>Expected processing was not detected during the test. Try again or check Windows sound settings.</en>
+  </text>
+  <text>
+    <zh>測試期間裝置已離線。</zh>
+    <en>The device disconnected during the test.</en>
+  </text>
+  <text>
+    <zh>無法取得狀態</zh>
+    <en>Status unavailable</en>
+  </text>
+  <text>
+    <zh>無法取得裝置狀態</zh>
+    <en>Device status unavailable</en>
+  </text>
+  <text>
+    <zh>無法取得裝置音訊格式，請檢查連線或 Windows 音效。</zh>
+    <en>The device's audio format could not be read. Check its connection or Windows sound settings.</en>
+  </text>
+  <text>
+    <zh>無法啟動左右聲道互換</zh>
+    <en>Channel Flip could not start</en>
+  </text>
+  <text>
+    <zh>無法啟動系統設定。</zh>
+    <en>System setup could not start.</en>
+  </text>
+  <text>
+    <zh>無法確認互換已關閉。</zh>
+    <en>Could not confirm that swap is off.</en>
+  </text>
+  <text>
+    <zh>無法確認設定已儲存。</zh>
+    <en>Could not confirm that the setting was saved.</en>
+  </text>
+  <text>
+    <zh>無法複製：</zh>
+    <en>Could not copy: </en>
+  </text>
+  <text>
+    <zh>無法讀取進階設定</zh>
+    <en>Advanced settings unavailable</en>
+  </text>
+  <text>
+    <zh>無法讀取裝置偏好：</zh>
+    <en>Could not read device preferences: </en>
+  </text>
+  <text>
+    <zh>登錄機碼不存在：</zh>
+    <en>Registry key does not exist: </en>
+  </text>
+  <text>
+    <zh>程式缺少內建音訊核心，請重新編譯。</zh>
+    <en>The built-in audio core is missing. Rebuild the application.</en>
+  </text>
+  <text>
+    <zh>等待音訊／尚待測試</zh>
+    <en>Waiting for audio or a test</en>
+  </text>
+  <text>
+    <zh>進階設定</zh>
+    <en>Advanced settings</en>
+  </text>
+  <text>
+    <zh>開啟</zh>
+    <en>On</en>
+  </text>
+  <text>
+    <zh>開啟互換</zh>
+    <en>Turn swap on</en>
+  </text>
+  <text>
+    <zh>裝置已設定。請播放左右測試音，確認實際耳機方向。</zh>
+    <en>Device setup is complete. Play both test tones to confirm the direction in your headphones.</en>
+  </text>
+  <text>
+    <zh>裝置已離線</zh>
+    <en>Device offline</en>
+  </text>
+  <text>
+    <zh>裝置可用後，才能測試左右方向。</zh>
+    <en>Channel tests will be available when the device is ready.</en>
+  </text>
+  <text>
+    <zh>裝置目前不是立體聲，無法測試左右聲道。</zh>
+    <en>The device is not currently stereo, so left/right tests are unavailable.</en>
+  </text>
+  <text>
+    <zh>裝置偏好未能儲存：</zh>
+    <en>Device preferences could not be saved: </en>
+  </text>
+  <text>
+    <zh>裝置設定清單已改變，請重試。</zh>
+    <en>The device settings list has changed. Please try again.</en>
+  </text>
+  <text>
+    <zh>裝置選取方式</zh>
+    <en>Device selection mode</en>
+  </text>
+  <text>
+    <zh>跟隨系統預設</zh>
+    <en>Follow system default</en>
+  </text>
+  <text>
+    <zh>電腦音訊服務已重新啟動，請重新測試方向。</zh>
+    <en>Windows audio services have restarted. Please test the direction again.</en>
+  </text>
+  <text>
+    <zh>預期方向</zh>
+    <en>Expected direction</en>
+  </text>
+  <text>
+    <zh>需要 Windows 管理員授權。</zh>
+    <en>Windows administrator approval is required.</en>
+  </text>
+  <text>
+    <zh>影響範圍已改變，請重新開啟進階設定檢視清單。</zh>
+    <en>The affected settings have changed. Reopen Advanced settings to review the list.</en>
+  </text>
+  <text>
+    <zh>影響範圍已改變。</zh>
+    <en>The affected settings have changed.</en>
+  </text>
+  <text>
+    <zh>影響範圍已改變。請重新開啟進階設定，檢視裝置清單後再執行。</zh>
+    <en>The affected settings have changed. Reopen Advanced settings and review the device list before proceeding.</en>
+  </text>
+  <text>
+    <zh>播放測試音逾時；請確認耳機仍保持連線。</zh>
+    <en>The test tone timed out. Check that your headphones are still connected.</en>
+  </text>
+  <text>
+    <zh>模擬：無法讀取音訊核心狀態檔。</zh>
+    <en>Simulation: the audio core state file cannot be read.</en>
+  </text>
+  <text>
+    <zh>模擬模式不會開啟或修改 Windows 音效。</zh>
+    <en>Simulation mode does not open or change Windows sound settings.</en>
+  </text>
+  <text>
+    <zh>模擬操作完成：{0}</zh>
+    <en>Simulation completed: {0}</en>
+  </text>
+  <text>
+    <zh>確認執行</zh>
+    <en>Confirm</en>
+  </text>
+  <text>
+    <zh>複製錯誤詳情</zh>
+    <en>Copy error details</en>
+  </text>
+  <text>
+    <zh>請先處理目前的音訊錯誤或開啟音效強化。</zh>
+    <en>Resolve the current audio error or turn on audio enhancements first.</en>
+  </text>
+  <text>
+    <zh>請在 Windows 音效中開啟此裝置的音效強化，再測試方向。</zh>
+    <en>Turn on audio enhancements for this device in Windows sound settings, then test the direction.</en>
+  </text>
+  <text>
+    <zh>請重新整理。錯誤詳情可在下方檢視。</zh>
+    <en>Please refresh. Error details are available below.</en>
+  </text>
+  <text>
+    <zh>請連接耳機或喇叭，再按重新整理。</zh>
+    <en>Connect headphones or speakers, then choose Refresh.</en>
+  </text>
+  <text>
+    <zh>請稍候。</zh>
+    <en>Please wait.</en>
+  </text>
+  <text>
+    <zh>請檢查 Windows 管理員授權。</zh>
+    <en>Check Windows administrator approval.</en>
+  </text>
+  <text>
+    <zh>操作未完成，請檢查下方狀態或錯誤詳情。</zh>
+    <en>The operation did not finish. Check the status or error details below.</en>
+  </text>
+  <text>
+    <zh>操作目標已跟隨系統預設改為「{0}」。</zh>
+    <en>The target followed the system default and changed to “{0}”.</en>
+  </text>
+  <text>
+    <zh>操作目標已變更，請查看目前裝置的狀態。</zh>
+    <en>The target changed. Check the status of the current device.</en>
+  </text>
+  <text>
+    <zh>操作目標跟隨多媒體預設；各裝置設定獨立保存。</zh>
+    <en>Follow the multimedia default. Each device keeps its own settings.</en>
+  </text>
+  <text>
+    <zh>輸出裝置</zh>
+    <en>Output device</en>
+  </text>
+  <text>
+    <zh>選擇要操作的耳機或喇叭。</zh>
+    <en>Select the headphones or speakers to control.</en>
+  </text>
+  <text>
+    <zh>錯誤詳情</zh>
+    <en>Error details</en>
+  </text>
+  <text>
+    <zh>還原並移除設定</zh>
+    <en>Restore and remove settings</en>
+  </text>
+  <text>
+    <zh>離線預覽只能使用模擬資料。</zh>
+    <en>Offline previews require simulated data.</en>
+  </text>
+  <text>
+    <zh>關閉</zh>
+    <en>Off</en>
+  </text>
+  <text>
+    <zh>關閉互換</zh>
+    <en>Turn swap off</en>
+  </text>
+  <text>
+    <zh>關閉互換或視窗會保留系統設定。日後可在進階設定使用「移除所有裝置的設定」還原本程式的變更。</zh>
+    <en>Turning swap off or closing the window keeps the system settings. To restore Channel Flip's changes later, choose Remove all device settings in Advanced settings.</en>
+  </text>
+  <text>
+    <zh>關閉所有已設定裝置的互換</zh>
+    <en>Turn off all configured swaps</en>
+  </text>
+  <text>
+    <zh>關閉所有裝置的互換</zh>
+    <en>Turn off all device swaps</en>
+  </text>
+  <text>
+    <zh>關閉視窗</zh>
+    <en>Close</en>
+  </text>
+  <text>
+    <zh>USB 喇叭</zh>
+    <en>USB speakers</en>
+  </text>
+  <text>
+    <zh>Windows 未成功載入或執行音訊核心，已嘗試還原原本設定。核心錯誤：0x</zh>
+    <en>Windows did not load or run the audio core successfully. Restoration of the original settings was attempted. Core error: 0x</en>
+  </text>
+  <text>
+    <zh>Windows 音效</zh>
+    <en>Windows sound</en>
+  </text>
+</translations>

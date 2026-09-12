@@ -19,7 +19,7 @@ namespace ChannelFlip
         public bool EnhancementsDisabled;
         public string FormatError;
         public bool Offline;
-        public string DisplayName { get { return Name + (Offline ? "  ·  已離線" : IsDefault ? "  ·  系統預設" : ""); } }
+        public string DisplayName { get { return Name + (Offline ? L10n.T("  ·  已離線") : IsDefault ? L10n.T("  ·  系統預設") : ""); } }
         public override string ToString() { return DisplayName; }
     }
 
@@ -59,7 +59,7 @@ namespace ChannelFlip
                                     string friendly = properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},14") as string;
                                     string connection = properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2") as string;
                                     string hardware = properties.GetValue("{b3f8fa53-0004-438e-9003-51a46e139bfc},6") as string;
-                                    device.Name = friendly ?? ((connection ?? "音訊輸出") + " (" + (hardware ?? guid) + ")");
+                                    device.Name = friendly ?? ((connection ?? L10n.T("音訊輸出")) + " (" + (hardware ?? guid) + ")");
                                 }
                             }
                             using (var fx = machine.OpenSubKey(RenderRegistry + guid + @"\FxProperties"))
@@ -108,8 +108,8 @@ namespace ChannelFlip
     {
         public static byte[] Generate(int sampleRate, int channels, int bits, bool floatingPoint, int sourceChannel, int startFrame, int frames, int totalFrames)
         {
-            if (sourceChannel < 0 || sourceChannel >= channels || channels < 2) throw new InvalidOperationException("裝置目前不是立體聲，無法測試左右聲道。");
-            if ((floatingPoint && bits != 32) || (!floatingPoint && bits != 16 && bits != 24 && bits != 32)) throw new NotSupportedException("測試音不支援此裝置的音訊格式。");
+            if (sourceChannel < 0 || sourceChannel >= channels || channels < 2) throw new InvalidOperationException(L10n.T("裝置目前不是立體聲，無法測試左右聲道。"));
+            if ((floatingPoint && bits != 32) || (!floatingPoint && bits != 16 && bits != 24 && bits != 32)) throw new NotSupportedException(L10n.T("測試音不支援此裝置的音訊格式。"));
             int bytesPerSample = bits / 8;
             byte[] result = new byte[frames * channels * bytesPerSample];
             int fade = Math.Max(1, sampleRate / 60);
@@ -149,7 +149,7 @@ namespace ChannelFlip
                 int rate = Marshal.ReadInt32(format, 4);
                 int bits = (ushort)Marshal.ReadInt16(format, 14);
                 if (tag == 65534) tag = Marshal.ReadInt32(format, 24);
-                if (tag != 1 && tag != 3) throw new NotSupportedException("測試音不支援此裝置的音訊格式。");
+                if (tag != 1 && tag != 3) throw new NotSupportedException(L10n.T("測試音不支援此裝置的音訊格式。"));
                 AudioDevices.Check(client.Initialize(0, 0, 1000000, 0, format, IntPtr.Zero));
                 uint capacity;
                 AudioDevices.Check(client.GetBufferSize(out capacity));
@@ -163,7 +163,7 @@ namespace ChannelFlip
                 while (true)
                 {
                     cancel.ThrowIfCancellationRequested();
-                    if (clock.ElapsedMilliseconds > 5000) throw new TimeoutException("播放測試音逾時；請確認耳機仍保持連線。");
+                    if (clock.ElapsedMilliseconds > 5000) throw new TimeoutException(L10n.T("播放測試音逾時；請確認耳機仍保持連線。"));
                     uint padding;
                     AudioDevices.Check(client.GetCurrentPadding(out padding));
                     if (written == total && padding == 0) break;

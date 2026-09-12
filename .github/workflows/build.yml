@@ -17,6 +17,8 @@ jobs:
         shell: pwsh
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify English and Traditional Chinese translation coverage
+        run: .\tools\verify-translations.ps1
       - name: Download and verify pinned build dependencies
         run: .\tools\bootstrap.ps1
       - name: Build and test settings and test tones

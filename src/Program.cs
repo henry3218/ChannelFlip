@@ -7,10 +7,10 @@ using System.Text;
 using System.Threading;
 using System.Windows;
 
-[assembly: AssemblyTitle("左右聲道互換")]
-[assembly: AssemblyDescription("獨立音訊核心 / Channel Flip")]
-[assembly: AssemblyVersion("2.1.1.0")]
-[assembly: AssemblyFileVersion("2.1.1.0")]
+[assembly: AssemblyTitle("Channel Flip")]
+[assembly: AssemblyDescription("Standalone left/right audio channel swap")]
+[assembly: AssemblyVersion("2.2.0.0")]
+[assembly: AssemblyFileVersion("2.2.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.6.2")]
 
 namespace ChannelFlip
@@ -27,6 +27,16 @@ namespace ChannelFlip
                 AppContext.SetSwitch("Switch.UseLegacyAccessibilityFeatures", false);
                 AppContext.SetSwitch("Switch.UseLegacyAccessibilityFeatures.2", false);
                 AppContext.SetSwitch("Switch.UseLegacyAccessibilityFeatures.3", false);
+                string language = null;
+                if (args.Length > 0 && args[0] == "--language")
+                {
+                    if (args.Length < 2 || !L10n.IsSupported(args[1])) return 64;
+                    language = args[1]; args = args.Skip(2).ToArray();
+                }
+                bool isolated = args.Length > 0 && (args[0] == "--render-preview" || args[0] == "--simulate" || args[0] == "--licenses");
+                if (language == null && !isolated)
+                    try { language = DevicePreference.Load(DataDirectory).Language; } catch (Exception ex) { Log(ex); }
+                L10n.SetLanguage(language ?? (isolated ? "zh-TW" : L10n.ForCulture(System.Globalization.CultureInfo.CurrentUICulture)));
                 if (args.Length > 0)
                 {
                     if (args[0] == "--diagnose" && args.Length == 2) { File.WriteAllText(args[1], Diagnose(), new UTF8Encoding(true)); return 0; }
@@ -75,7 +85,7 @@ namespace ChannelFlip
                     var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
                     application.DispatcherUnhandledException += delegate(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
                     {
-                        Log(e.Exception); MessageBox.Show(e.Exception.Message, "左右聲道互換", MessageBoxButton.OK, MessageBoxImage.Error); e.Handled = true;
+                        Log(e.Exception); MessageBox.Show(e.Exception.Message, L10n.T("左右聲道互換"), MessageBoxButton.OK, MessageBoxImage.Error); e.Handled = true;
                     };
                     application.Run(new MainWindow(false).View);
                     return 0;
@@ -88,7 +98,7 @@ namespace ChannelFlip
                 {
                     try { Directory.CreateDirectory(Engine.SharedDirectory); File.WriteAllText(Path.Combine(Engine.SharedDirectory, "setup-error.txt"), ex.ToString(), new UTF8Encoding(true)); } catch { }
                 }
-                if (args.Length == 0) MessageBox.Show(ex.Message, "無法啟動左右聲道互換", MessageBoxButton.OK, MessageBoxImage.Error);
+                if (args.Length == 0) MessageBox.Show(ex.Message, L10n.T("無法啟動左右聲道互換"), MessageBoxButton.OK, MessageBoxImage.Error);
                 return 1;
             }
         }
@@ -98,6 +108,7 @@ namespace ChannelFlip
             text.AppendLine("Channel Flip " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + " standalone diagnostic (read-only)");
             text.AppendLine("UTC: " + DateTime.UtcNow.ToString("o"));
             text.AppendLine("64-bit process: " + Environment.Is64BitProcess);
+            text.AppendLine("Interface language: " + L10n.Language);
             using (var core = Assembly.GetExecutingAssembly().GetManifestResourceStream("ChannelFlip.Native.dll"))
                 text.AppendLine("Embedded native core: " + (core == null ? "MISSING" : core.Length + " bytes"));
             text.AppendLine("Audio host setting consent required: " + Engine.NeedsAudioHostPermission());

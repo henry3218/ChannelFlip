@@ -46,7 +46,7 @@ namespace ChannelFlip
         public static string GuidText(string id)
         {
             Guid guid;
-            if (!Guid.TryParse(id, out guid)) throw new ArgumentException("音訊裝置識別碼無效。");
+            if (!Guid.TryParse(id, out guid)) throw new ArgumentException(L10n.T("音訊裝置識別碼無效。"));
             return guid.ToString("B").ToLowerInvariant();
         }
         public static string StatePath(string id) { return Path.Combine(SharedDirectory, "State", GuidText(id) + ".bin"); }
@@ -67,7 +67,7 @@ namespace ChannelFlip
             using (var map = OpenStateMap(file, MemoryMappedFileAccess.Read))
             using (var view = map.CreateViewAccessor(0, 4096, MemoryMappedFileAccess.Read))
             {
-                if (view.ReadInt32(0) != StateMagic || view.ReadInt32(4) != 1) throw new InvalidDataException("音訊核心狀態檔無效，請在進階設定移除所有裝置的設定，再重新設定裝置。");
+                if (view.ReadInt32(0) != StateMagic || view.ReadInt32(4) != 1) throw new InvalidDataException(L10n.T("音訊核心狀態檔無效，請在進階設定移除所有裝置的設定，再重新設定裝置。"));
                 status.Enabled = view.ReadInt32(8) != 0;
                 status.Channels = view.ReadInt32(16);
                 status.Loads = view.ReadInt32(20);
@@ -89,7 +89,7 @@ namespace ChannelFlip
             using (var map = OpenStateMap(file, MemoryMappedFileAccess.ReadWrite))
             using (var view = map.CreateViewAccessor(0, 4096, MemoryMappedFileAccess.ReadWrite))
             {
-                if (view.ReadInt32(0) != StateMagic || view.ReadInt32(4) != 1) throw new InvalidDataException("音訊核心狀態檔無效。");
+                if (view.ReadInt32(0) != StateMagic || view.ReadInt32(4) != 1) throw new InvalidDataException(L10n.T("音訊核心狀態檔無效。"));
                 view.Write(8, enabled ? 1 : 0);
                 view.Flush();
             }
@@ -104,7 +104,7 @@ namespace ChannelFlip
         }
         private static MemoryMappedFile OpenStateMap(FileStream file, MemoryMappedFileAccess access)
         {
-            if (file.Length < 4096) throw new InvalidDataException("音訊核心狀態檔不完整。");
+            if (file.Length < 4096) throw new InvalidDataException(L10n.T("音訊核心狀態檔不完整。"));
             return MemoryMappedFile.CreateFromFile(file, null, 4096, access, null, HandleInheritability.None, true);
         }
         public static string[] KnownDevices()
@@ -121,7 +121,7 @@ namespace ChannelFlip
                 foreach (string id in KnownDevices().OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
                 using (var key = machine.OpenSubKey(RegistryPath + @"\Devices\" + id))
                 {
-                    if (key == null) throw new IOException("裝置設定清單已改變，請重試。");
+                    if (key == null) throw new IOException(L10n.T("裝置設定清單已改變，請重試。"));
                     string journal = key.GetValue("Journal") as string;
                     devices.Add(new SetupDevice { Id = id, Name = key.GetValue("DeviceName") as string ?? id });
                     fingerprint.Append(id).Append('\n').Append(journal).Append('\n');
@@ -143,7 +143,7 @@ namespace ChannelFlip
         public static SetupScope CheckScope(string expected)
         {
             var scope = ReadScope();
-            if (expected != null && scope.Signature != expected) throw new InvalidOperationException("影響範圍已改變。請重新開啟進階設定，檢視裝置清單後再執行。");
+            if (expected != null && scope.Signature != expected) throw new InvalidOperationException(L10n.T("影響範圍已改變。請重新開啟進階設定，檢視裝置清單後再執行。"));
             return scope;
         }
         public static void DisableAll() { DisableAll(null); }
@@ -153,7 +153,7 @@ namespace ChannelFlip
             var errors = new List<string>();
             foreach (string id in scope.Devices.Select(d => d.Id))
             {
-                try { SetEnabled(id, false); if (Read(id).Enabled) throw new IOException("無法確認互換已關閉。"); }
+                try { SetEnabled(id, false); if (Read(id).Enabled) throw new IOException(L10n.T("無法確認互換已關閉。")); }
                 catch (Exception ex) { errors.Add(id + ": " + ex.Message); }
             }
             if (errors.Count > 0) throw new IOException(String.Join(Environment.NewLine, errors));
@@ -183,23 +183,23 @@ namespace ChannelFlip
         private static Exception SetupError(int code)
         {
             string log = Path.Combine(SharedDirectory, "setup-error.txt");
-            string detail = File.Exists(log) ? File.ReadAllText(log) : "請檢查 Windows 管理員授權。";
-            return new InvalidOperationException("音訊設定未完成（" + code + "）：" + detail);
+            string detail = File.Exists(log) ? File.ReadAllText(log) : L10n.T("請檢查 Windows 管理員授權。");
+            return new InvalidOperationException(L10n.T("音訊設定未完成（{0}）：{1}", code, detail));
         }
         private static async Task<int> RunAdmin(string arguments)
         {
             Process child;
             try
             {
-                child = Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location, arguments)
+                child = Process.Start(new ProcessStartInfo(Assembly.GetExecutingAssembly().Location, "--language " + L10n.Language + " " + arguments)
                 { UseShellExecute = true, Verb = "runas", WindowStyle = ProcessWindowStyle.Hidden });
             }
             catch (Win32Exception ex)
             {
-                if (ex.NativeErrorCode == 1223) throw new OperationCanceledException("已取消 Windows 管理員授權，設定未變更。");
+                if (ex.NativeErrorCode == 1223) throw new OperationCanceledException(L10n.T("已取消 Windows 管理員授權，設定未變更。"));
                 throw;
             }
-            if (child == null) throw new IOException("無法啟動系統設定。");
+            if (child == null) throw new IOException(L10n.T("無法啟動系統設定。"));
             using (child) { await Task.Run(delegate { child.WaitForExit(); }); return child.ExitCode; }
         }
         public static bool IsAdministrator()
@@ -209,31 +209,31 @@ namespace ChannelFlip
 
         public static void AttachAsAdmin(string id, bool allowAudioHostChange)
         {
-            if (!IsAdministrator()) throw new UnauthorizedAccessException("需要 Windows 管理員授權。");
+            if (!IsAdministrator()) throw new UnauthorizedAccessException(L10n.T("需要 Windows 管理員授權。"));
             id = GuidText(id);
             var device = AudioDevices.Enumerate().FirstOrDefault(x => x.Guid == id);
-            if (device == null || device.Channels < 2) throw new InvalidOperationException("找不到可用的立體聲輸出裝置。");
+            if (device == null || device.Channels < 2) throw new InvalidOperationException(L10n.T("找不到可用的立體聲輸出裝置。"));
             if (Read(id).Attached) { SetEnabled(id, true); return; }
             if (NeedsAudioHostPermission() && !allowAudioHostChange)
-                throw new InvalidOperationException("自製核心未經 Microsoft WHQL 簽署，需先在主視窗同意音訊宿主設定變更。");
+                throw new InvalidOperationException(L10n.T("自製核心未經 Microsoft WHQL 簽署，需先在主視窗同意音訊宿主設定變更。"));
 
             using (var machine = Machine())
             using (var fx = machine.OpenSubKey(FxPath(id)))
             {
-                if (fx == null) throw new NotSupportedException("此裝置未提供系統音效設定，尚不支援直接接入。");
-                if (fx.GetValue(FxPrefix + 14) != null) throw new NotSupportedException("這個裝置使用多重音效鏈，目前版本尚不支援安全接入。");
+                if (fx == null) throw new NotSupportedException(L10n.T("此裝置未提供系統音效設定，尚不支援直接接入。"));
+                if (fx.GetValue(FxPrefix + 14) != null) throw new NotSupportedException(L10n.T("這個裝置使用多重音效鏈，目前版本尚不支援安全接入。"));
             }
             Directory.CreateDirectory(Path.GetDirectoryName(InstalledDll));
             using (Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("ChannelFlip.Native.dll"))
             {
-                if (resource == null) throw new InvalidDataException("程式缺少內建音訊核心，請重新編譯。");
+                if (resource == null) throw new InvalidDataException(L10n.T("程式缺少內建音訊核心，請重新編譯。"));
                 byte[] bytes = new byte[resource.Length];
                 int offset = 0;
                 while (offset < bytes.Length) { int n = resource.Read(bytes, offset, bytes.Length - offset); if (n == 0) throw new EndOfStreamException(); offset += n; }
                 if (!File.Exists(InstalledDll)) File.WriteAllBytes(InstalledDll, bytes);
                 else if (!File.ReadAllBytes(InstalledDll).SequenceEqual(bytes))
                 {
-                    if (KnownDevices().Length != 0) throw new InvalidOperationException("已存在不同版本的音訊核心。請先在進階設定移除所有裝置的設定，再設定新版。");
+                    if (KnownDevices().Length != 0) throw new InvalidOperationException(L10n.T("已存在不同版本的音訊核心。請先在進階設定移除所有裝置的設定，再設定新版。"));
                     string staged = InstalledDll + "." + Guid.NewGuid().ToString("N") + ".tmp";
                     try { File.WriteAllBytes(staged, bytes); File.Replace(staged, InstalledDll, null); }
                     finally { if (File.Exists(staged)) File.Delete(staged); }
@@ -243,7 +243,7 @@ namespace ChannelFlip
             Directory.CreateDirectory(Path.GetDirectoryName(StatePath(id)));
             using (var machine = Machine())
             using (var saved = machine.OpenSubKey(RegistryPath + @"\Devices\" + id))
-                if (saved != null && saved.GetValue("Journal") != null) throw new InvalidOperationException("找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。");
+                if (saved != null && saved.GetValue("Journal") != null) throw new InvalidOperationException(L10n.T("找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。"));
             CreateStateFile(StatePath(id));
             var permissions = File.GetAccessControl(StatePath(id));
             permissions.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null), FileSystemRights.Read | FileSystemRights.Write, AccessControlType.Allow));
@@ -264,7 +264,7 @@ namespace ChannelFlip
                 using (var registry = machine.CreateSubKey(RegistryPath + @"\Devices\" + id))
                 {
                     // Save recovery information before the first audio-related mutation.
-                    if (registry.GetValue("Journal") != null) throw new InvalidOperationException("找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。");
+                    if (registry.GetValue("Journal") != null) throw new InvalidOperationException(L10n.T("找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。"));
                     registry.SetValue("Journal", RegistryEdit.Serialize(changes));
                     registry.SetValue("StatePath", StatePath(id));
                     registry.SetValue("ChildClsid", child);
@@ -288,7 +288,7 @@ namespace ChannelFlip
                 TestTone.Play(device.Id, 1, System.Threading.CancellationToken.None);
                 var verified = Read(id);
                 if (verified.Error != 0 || verified.SwappedFrames == 0 || verified.HostProcess == 0)
-                    throw new InvalidOperationException("Windows 未成功載入或執行音訊核心，已嘗試還原原本設定。核心錯誤：0x" + verified.Error.ToString("X8"));
+                    throw new InvalidOperationException(L10n.T("Windows 未成功載入或執行音訊核心，已嘗試還原原本設定。核心錯誤：0x") + verified.Error.ToString("X8"));
             }
             catch
             {
@@ -481,7 +481,7 @@ namespace ChannelFlip
         {
             using (var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
             {
-                try { using (var key = machine.OpenSubKey(path, true)) { if (key == null) throw new IOException("登錄機碼不存在：" + path); write(key); return; } }
+                try { using (var key = machine.OpenSubKey(path, true)) { if (key == null) throw new IOException(L10n.T("登錄機碼不存在：") + path); write(key); return; } }
                 catch (UnauthorizedAccessException) { }
                 catch (System.Security.SecurityException) { } // .NET Framework reports denied OpenSubKey access this way.
                 EnablePrivilege("SeTakeOwnershipPrivilege"); EnablePrivilege("SeRestorePrivilege");

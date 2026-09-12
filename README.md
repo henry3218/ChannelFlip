@@ -1,16 +1,20 @@
 # 左右聲道互換 / Channel Flip 2
 
+**繁體中文** | [English](README.en.md)
+
 [![Windows build and tests](https://github.com/henry3218/ChannelFlip/actions/workflows/build.yml/badge.svg)](https://github.com/henry3218/ChannelFlip/actions/workflows/build.yml)
 
 Windows 10 / 11 x64 桌面程式，內建自行實作的 C++ 音訊核心，交換所選輸出裝置的左、右聲道。採用 [MIT 授權](LICENSE)。**不需要安裝 Equalizer APO、虛擬音效卡、Python 或 Node.js。**
 
-[下載 2.1.1 預覽版](https://github.com/henry3218/ChannelFlip/releases/tag/v2.1.1-preview.1) · [回報問題](https://github.com/henry3218/ChannelFlip/issues) · [驗證範圍](VALIDATION.md)
+[下載 2.2.0 預覽版](https://github.com/henry3218/ChannelFlip/releases/tag/v2.2.0-preview.1) · [回報問題](https://github.com/henry3218/ChannelFlip/issues) · [驗證範圍](VALIDATION.md)
 
-下載 Release 附件中的 `ChannelFlip-2.1.1-preview.1-windows-x64.zip` 並完整解壓縮；GitHub 自動提供的 `Source code` 壓縮檔是原始碼，需要自行編譯。
+下載 Release 附件中的 `ChannelFlip-2.2.0-preview.1-windows-x64.zip` 並完整解壓縮；GitHub 自動提供的 `Source code` 壓縮檔是原始碼，需要自行編譯。
 
 開啟預覽包內的 `ChannelFlip.exe`；從原始碼編譯時，輸出位於 `app/ChannelFlip.exe`。EXE 內含介面、圖示、音訊 DLL 與授權聲明；執行時可單獨複製 EXE，使用 Windows 的 .NET Framework 4.6.2 以上版本。散布時仍須附上 MIT 與第三方授權聲明。
 
 ## 日常操作與狀態
+
+介面支援 **繁體中文與 English**，可從右上角語言選單即時切換，並記住下次開啟的選擇。首次啟動時，中文 Windows 顯示語言使用繁體中文，其他顯示語言使用英文。切換語言會保留裝置、互換設定及這次的聽感確認；裝置名稱仍使用 Windows 提供的原文。Windows／驅動訊息與已擷取的技術例外內容可能保留原始語言。兩種翻譯都內嵌於 EXE，下載包也附上中英文說明。
 
 1. 選取輸出裝置，首次按「設定此裝置」，閱讀影響範圍後選擇「設定並開啟互換」。
 2. 設定完成後使用「左右互換」開關；主卡分別顯示設定值與運作狀態。
@@ -40,11 +44,12 @@ Windows 10 / 11 x64 桌面程式，內建自行實作的 C++ 音訊核心，交�
 - 單聲道無法產生左右方向差異；多聲道只互換前方 L/R。藍牙免持模式可能使用另一個端點。
 - 尚不支援沒有 FxProperties、或使用多重 MFX 登記的裝置。驅動程式更新可能重設接入設定。
 
-本版為 2.1.1 預覽版本，未經 WHQL 與跨硬體認證。新增介面與流程的驗證、MOMENTUM 4 核心聽測，以及尚待實測的範圍分別記錄於 [驗證紀錄](VALIDATION.md)。Windows 10 尚未實測。
+本版為 2.2.0 預覽版本，未經 WHQL 與跨硬體認證。雙語介面與流程的驗證、MOMENTUM 4 核心聽測，以及尚待實測的範圍分別記錄於 [驗證紀錄](VALIDATION.md)。Windows 10 尚未實測。
 
 ## 編譯與驗證
 
 ```powershell
+.\tools\verify-translations.ps1
 .\tools\bootstrap.ps1
 .\build.ps1 -Test
 .\tests\native-tests.ps1
@@ -71,12 +76,15 @@ GitHub Actions 會執行編譯、離線測試與預覽包產生；每次提交�
 .\app\ChannelFlip.exe --render-preview C:\absolute\path\error.png core-error 584 600 144 contrast
 .\app\ChannelFlip.exe --render-preview C:\absolute\path\idle.png confirmed-idle 584 600 96 normal 225
 .\app\ChannelFlip.exe --simulate offline
+.\app\ChannelFlip.exe --language en --simulate offline
 .\app\ChannelFlip.exe --licenses C:\absolute\path\notices.txt
 ```
 
 其他命令入口：`--off` 關閉所有互換；`--remove` 和 `--restart-audio` 需管理員權限。首次接入入口 `--attach {endpoint-guid} --allow-audio-host-change` 僅供已明確同意系統變更的情況使用。
 
-`--render-preview` 與 `--simulate` 使用與正式介面相同的狀態／操作邏輯，注入完全隔離的模擬後端；不接觸真實音訊、登錄或使用者偏好。預覽的參數為輸出路徑、情境、寬／高 DIP、DPI、主題 `normal`／`contrast`、文字百分比（100–225）。可用情境列於 `src/UiTheme.cs`；`verify-ui.ps1` 產生 47 組狀態／尺寸／DPI／主題／大文字畫面。離線渲染不等於 Windows 設定與實體螢幕驗證。
+`--render-preview` 與 `--simulate` 使用與正式介面相同的狀態／操作邏輯，注入完全隔離的模擬後端；不接觸真實音訊、登錄或使用者偏好。預覽的參數為輸出路徑、情境、寬／高 DIP、DPI、主題 `normal`／`contrast`、文字百分比（100–225）。可用情境列於 `src/UiTheme.cs`；`verify-ui.ps1` 產生中英文共 94 組狀態／尺寸／DPI／主題／大文字畫面。離線渲染不等於 Windows 設定與實體螢幕驗證。
+
+命令開頭可加 `--language en` 或 `--language zh-TW`，只覆寫該程序的語言，不會自行保存偏好。介面中的語言選單才會保存選擇。隔離預覽預設繁體中文，不讀寫真實偏好。翻譯集中於 `src/Translations.xml`，貢獻方式見 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 每螢幕 DPI 設定依據 [Microsoft WPF 範例](https://github.com/microsoft/WPF-Samples/blob/main/PerMonitorDPI/readme.md)。
 
