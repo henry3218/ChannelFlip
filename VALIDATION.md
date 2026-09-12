@@ -12,7 +12,7 @@
 - **189 條雙語訊息**與 **94 個隔離 UI 畫面**檢查通過；單 EXE 可產生雙語預覽、授權及唯讀裝置診斷。
 - 壓力測試記錄 5,000 次回呼、64 MiB 記憶體觸頁與 50 次工作集驅逐。輸出包含程序 page fault、量測區間 page fault、平均／p99／最大耗時、10 ms 逾時次數與無效緩衝區。這是隔離測試宿主的數據，並非實體耳機音訊中斷或 AudioDG 回呼專屬 page fault 的證明。
 
-實機睡眠／喚醒與記憶體壓力驗收需記錄當次 EXE／核心雜湊、ETW、播放方向與中斷情況，隨該版本的驗收結果另行提供。在這些結果具備前，F03 實機驗收保持待完成，Windows 10 亦未驗收。
+9 月 12–13 日，固定候選產物已接入 MOMENTUM 4，實際開關及 512 MiB 連續播放壓力測試通過。連續播放 ETW 未記錄到 Glitch、AudioDG 硬分頁錯誤或事件遺失；早期短音追蹤的 7 次 Glitch 與 5 次宿主硬分頁錯誤亦保留在[實機紀錄](docs/HARDWARE-2.3.0.md)，不宣稱全部測試零異常。睡眠操作與此版本聽感仍待確認，F03 完整實機驗收保持待完成；Windows 10 未驗收。EXE 與 ZIP 未因補充文件而重新建置。
 
 本地證據位於 `work/reliability-build.log`、`work/reliability-packaging.log`、`work/reliability-standalone.log`、`work/reliability-ui.log` 及 `work/native-pressure.json`。CI 另外保存核心測試、壓力報告與產物紀錄，私人的装置診斷與 ETL 不公開。
 
