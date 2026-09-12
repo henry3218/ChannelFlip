@@ -1,0 +1,37 @@
+name: Windows build and tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Download and verify pinned build dependencies
+        run: .\tools\bootstrap.ps1
+      - name: Build and test settings and test tones
+        run: .\build.ps1 -Test
+      - name: Test native DLL using Microsoft SDK interfaces
+        run: .\tests\native-tests.ps1
+      - name: Verify standalone package without hardware diagnostics
+        run: .\tools\verify-package.ps1 -SkipDeviceDiagnostics
+      - name: Render isolated UI scenarios
+        run: .\tools\verify-ui.ps1
+      - name: Stage local preview package
+        run: .\tools\package-release.ps1
+      - name: Upload preview build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ChannelFlip-windows-x64-preview
+          path: dist/*
+          if-no-files-found: error

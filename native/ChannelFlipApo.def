@@ -1,0 +1,4 @@
+LIBRARY ChannelFlipApo
+EXPORTS
+    DllGetClassObject
+    DllCanUnloadNow

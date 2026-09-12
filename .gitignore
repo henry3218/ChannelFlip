@@ -1,0 +1,13 @@
+/work/
+/dist/
+/app/*.exe
+/app/*.dll
+/app/*.ico
+/app/*.pdb
+/app/components/
+.vs/
+.env
+.env.*
+*.pfx
+*.p12
+*.lnk

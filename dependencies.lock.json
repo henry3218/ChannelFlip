@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "zig": {
+    "version": "0.16.0",
+    "archiveUrl": "https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip",
+    "archiveSha256": "68659eb5f1e4eb1437a722f1dd889c5a322c9954607f5edcf337bc3684a75a7e",
+    "archiveBytes": 97217739,
+    "folder": "zig-x86_64-windows-0.16.0",
+    "executableSha256": "086ce9d47ba42f33a514e1a6e04eb1d4a8fa1d75e0868e0213caad447c91e864"
+  },
+  "sdk": {
+    "project": "microsoft/win32metadata",
+    "commit": "29896383c51d9dd6a2ea0ec6304d095baca9418c",
+    "files": [
+      {
+        "name": "audioenginebaseapo.h",
+        "url": "https://raw.githubusercontent.com/microsoft/win32metadata/29896383c51d9dd6a2ea0ec6304d095baca9418c/generation/WinSDK/RecompiledIdlHeaders/um/audioenginebaseapo.h",
+        "sha256": "1859398a91a4498f23ad1e06755f9520138308268f4ac4927a3526c3de1d6382"
+      },
+      {
+        "name": "audiomediatype.h",
+        "url": "https://raw.githubusercontent.com/microsoft/win32metadata/29896383c51d9dd6a2ea0ec6304d095baca9418c/generation/WinSDK/RecompiledIdlHeaders/um/audiomediatype.h",
+        "sha256": "20d550d6fe21fed26bee3e1313791b859984cef0bd7d1a143a1acf92fa9481cc"
+      },
+      {
+        "name": "mmdeviceapi.h",
+        "url": "https://raw.githubusercontent.com/microsoft/win32metadata/29896383c51d9dd6a2ea0ec6304d095baca9418c/generation/WinSDK/RecompiledIdlHeaders/um/mmdeviceapi.h",
+        "sha256": "dcacabdf69f267a7892ab61f22f3293fc3173c2d962306ce89a0145def7b7b1a"
+      }
+    ]
+  }
+}
