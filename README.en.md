@@ -4,12 +4,12 @@
 
 Swap the left and right channels of your headphones or speakers on Windows. The audio component is built in; no Equalizer APO installation is needed.
 
-## [Download 2.3.0 preview (Windows x64 ZIP)](https://github.com/henry3218/ChannelFlip/releases/download/v2.3.0-preview.1/ChannelFlip-2.3.0-preview.1-windows-x64.zip)
+## [Download 2.3.0 (Windows x64 ZIP)](https://github.com/henry3218/ChannelFlip/releases/download/v2.3.0/ChannelFlip-2.3.0-windows-x64.zip)
 
-[Release notes](https://github.com/henry3218/ChannelFlip/releases/tag/v2.3.0-preview.1) · [Report an issue](https://github.com/henry3218/ChannelFlip/issues)
+[Release notes](https://github.com/henry3218/ChannelFlip/releases/tag/v2.3.0) · [Report an issue](https://github.com/henry3218/ChannelFlip/issues)
 
 > [!IMPORTANT]
-> This preview has no Microsoft audio signature. First-time setup requires administrator approval, briefly interrupts computer audio, and disables the protected audio host's signature restriction system-wide. This may affect DRM playback. [Review the changes and how to restore them](FIRST_RUN.en.md).
+> This release has no Microsoft audio signature. First-time setup requires administrator approval, briefly interrupts computer audio, and disables the protected audio host's signature restriction system-wide. This may affect DRM playback. [Review the changes and how to restore them](FIRST_RUN.en.md).
 
 ## Get started
 
@@ -24,7 +24,7 @@ Switch between **English and Traditional Chinese** at the top right. The app rem
 ## Compatibility
 
 - **Requirements:** Windows 10 / 11 x64 with .NET Framework 4.6.2 or later.
-- **Tested:** Windows 11 with MOMENTUM 4. Windows 10 and other devices remain untested.
+- **Tested:** Windows 11 with MOMENTUM 4. Windows 10, other devices and actual sleep/resume remain unvalidated.
 - **Audio paths:** Audio must pass through Windows shared-mode effects. ASIO, exclusive mode, RAW, passthrough, or disabled audio enhancements may bypass swapping.
 
 [View compatibility and test results](VALIDATION.en.md)

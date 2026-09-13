@@ -4,12 +4,12 @@
 
 在 Windows 上交換耳機或喇叭的左右聲道。內建音訊元件，不需安裝 Equalizer APO。
 
-## [下載 2.3.0 預覽版（Windows x64 ZIP）](https://github.com/henry3218/ChannelFlip/releases/download/v2.3.0-preview.1/ChannelFlip-2.3.0-preview.1-windows-x64.zip)
+## [下載 2.3.0 正式版（Windows x64 ZIP）](https://github.com/henry3218/ChannelFlip/releases/download/v2.3.0/ChannelFlip-2.3.0-windows-x64.zip)
 
-[版本說明](https://github.com/henry3218/ChannelFlip/releases/tag/v2.3.0-preview.1) · [回報問題](https://github.com/henry3218/ChannelFlip/issues)
+[版本說明](https://github.com/henry3218/ChannelFlip/releases/tag/v2.3.0) · [回報問題](https://github.com/henry3218/ChannelFlip/issues)
 
 > [!IMPORTANT]
-> 此預覽版尚未取得微軟音訊簽章。首次設定需管理員權限，會短暫中斷電腦音訊，並停用全系統受保護音訊宿主的簽章限制，可能影響 DRM 內容播放。[查看變更與還原方式](FIRST_RUN.md)。
+> 此版本尚未取得微軟音訊簽章。首次設定需管理員權限，會短暫中斷電腦音訊，並停用全系統受保護音訊宿主的簽章限制，可能影響 DRM 內容播放。[查看變更與還原方式](FIRST_RUN.md)。
 
 ## 開始使用
 
@@ -24,7 +24,7 @@
 ## 支援範圍
 
 - **系統需求**：Windows 10 / 11 x64，.NET Framework 4.6.2 以上。
-- **實測環境**：Windows 11 + MOMENTUM 4。Windows 10 與其他裝置尚未實測。
+- **實測環境**：Windows 11 + MOMENTUM 4。Windows 10、其他裝置與真正睡眠／喚醒尚未完成驗收。
 - **音訊限制**：需經過 Windows 共用模式音效。ASIO、獨佔模式、RAW、音訊直通或關閉音效強化時，互換可能無效。
 
 [查看相容性與測試紀錄](VALIDATION.md)

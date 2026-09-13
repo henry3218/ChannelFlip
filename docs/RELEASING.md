@@ -48,3 +48,9 @@ For a future release that keeps the protected audio host enabled, see [SIGNING.e
 ## Publication
 
 Choose the repository owner/name and release version, inspect the final source diff, run CI in that repository, and review the generated assets. Publish only after the maintainer decides the tested preview is ready to share. Record the release asset hash and source commit so reports can identify the exact build.
+
+### 2.3.0 promotion
+
+On September 13, 2026, the maintainer explicitly requested promotion to a full GitHub release, overriding the preview gate above for 2.3.0. `v2.3.0` is the Latest release. Actual sleep/resume, Windows 10 and other-device acceptance remain incomplete; this status change adds no test or signing evidence. See the [hardware record](HARDWARE-2.3.0.md).
+
+The release uses the unchanged ZIP from `v2.3.0-preview.1`, renamed to `ChannelFlip-2.3.0-windows-x64.zip`. Its SHA-256 remains `7f96abc3f842fd3be74480df86b8647fd08033e6af16b4f6fdcbb07c021a82de`; the accompanying checksum text names the new filename. Both tags identify build source `d4d15ee7174eb9b39a8350ee2808754fc4308032`. The EXE and archive were not rebuilt, and the archive retains its original preview build metadata and bundled notes. The GitHub release page records the promotion and links the later hardware evidence.
