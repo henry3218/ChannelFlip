@@ -4,7 +4,9 @@
 
 在 Windows 上交換耳機或喇叭的左右聲道。內建音訊元件，不需安裝 Equalizer APO。
 
-**[下載 2.2.0 預覽版（Windows x64 ZIP）](https://github.com/henry3218/ChannelFlip/releases/download/v2.2.0-preview.1/ChannelFlip-2.2.0-preview.1-windows-x64.zip)** · [版本說明](https://github.com/henry3218/ChannelFlip/releases/tag/v2.2.0-preview.1) · [回報問題](https://github.com/henry3218/ChannelFlip/issues)
+## [下載 2.3.0 預覽版（Windows x64 ZIP）](https://github.com/henry3218/ChannelFlip/releases/download/v2.3.0-preview.1/ChannelFlip-2.3.0-preview.1-windows-x64.zip)
+
+[版本說明](https://github.com/henry3218/ChannelFlip/releases/tag/v2.3.0-preview.1) · [回報問題](https://github.com/henry3218/ChannelFlip/issues)
 
 > [!IMPORTANT]
 > 此預覽版尚未取得微軟音訊簽章。首次設定需管理員權限，會短暫中斷電腦音訊，並停用全系統受保護音訊宿主的簽章限制，可能影響 DRM 內容播放。[查看變更與還原方式](FIRST_RUN.md)。
