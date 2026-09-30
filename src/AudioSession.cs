@@ -31,6 +31,8 @@ namespace ChannelFlip
         public string ReadError, ScopeError, EnumerationError, InstallationError;
         public OperationResult LastOperation { get; private set; }
         private LocalizedText message, errorDetail;
+        // Scope signature right after the last operation; null while no result is shown.
+        private string resultScope;
         public string Message { get { return LocalizedText.Render(message); } set { message = value; } }
         public string ErrorDetail { get { return LocalizedText.Render(errorDetail); } set { errorDetail = value; } }
         public void SetMessage(LocalizedText value) { message = value; }
@@ -71,6 +73,8 @@ namespace ChannelFlip
             catch (Exception ex) { ReadError = ex.Message; State = new EngineStatus(); Observation.Reset(); }
             try { Scope = Backend.Scope(); }
             catch (Exception ex) { Scope = new SetupScope(); ScopeError = ex.Message; }
+            // A result describes the configuration it produced; another program changing it makes the result stale.
+            if (resultScope != null && Scope.Signature != resultScope && !MessageError) { message = null; resultScope = null; }
             try { Installation = Backend.Installation(); InstallationError = null; }
             catch (Exception ex) { Installation = new InstallationStatus(); InstallationError = ex.Message; }
             Notify();
@@ -98,14 +102,14 @@ namespace ChannelFlip
             if (Busy) return;
             var target = Devices.FirstOrDefault(d => d.Id == targetId);
             LastOperation = new OperationResult { DeviceId = targetId, DeviceName = target == null ? targetId : target.Name, Operation = progress };
-            Busy = true; message = progress; MessageError = false; ErrorDetail = null; Notify();
+            Busy = true; message = progress; MessageError = false; ErrorDetail = null; resultScope = null; Notify();
             try { message = await action(); }
             catch (OperationCanceledException) { message = L10n.M("已取消這次操作。"); }
             catch (Exception ex) { message = L10n.M("操作未完成，請檢查下方狀態或錯誤詳情。"); ErrorDetail = ex.Message; MessageError = true; }
             finally
             {
                 LastOperation.Failed = MessageError; LastOperation.Error = errorDetail;
-                Busy = false; Refresh();
+                Busy = false; Refresh(); resultScope = Scope.Signature;
                 if (!MessageError && targetId != null && (Selected == null || Selected.Id != targetId)) { message = L10n.M("操作目標已變更，請查看目前裝置的狀態。"); ErrorDetail = null; Notify(); }
             }
         }

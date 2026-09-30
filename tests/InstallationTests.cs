@@ -37,6 +37,18 @@ public static class InstallationTests
                 "Empty folders are deleted child first; a folder with a file in use is kept for deletion at restart");
         }
         check(InstallationFiles.Delete(new[] { held }, 1, TimeSpan.Zero).Count == 0 && !File.Exists(held), "A released file is deleted");
+        string running = Path.Combine(folder, "running.exe"), locked = Path.Combine(folder, "locked.dll");
+        File.WriteAllText(running, "x"); File.WriteAllText(locked, "x");
+        // A running image is open with delete sharing, like this handle; an exclusive handle cannot be renamed.
+        using (new FileStream(running, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete))
+        using (new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            string aside = InstallationFiles.MoveAside(running);
+            check(aside != running && aside.EndsWith(".delete") && File.Exists(aside) && !File.Exists(running),
+                "A file in use is renamed aside, freeing its name for a reinstall before the restart");
+            check(InstallationFiles.MoveAside(locked) == locked && File.Exists(locked), "A file that cannot be renamed keeps its name for deletion at restart");
+        }
+        InstallationFiles.Delete(Directory.GetFiles(folder), 1, TimeSpan.Zero);
         check(InstallationFiles.DeleteEmptyDirectories(new[] { folder, Path.Combine(directory, "missing-folder") }).Count == 0 && !Directory.Exists(folder),
             "An emptied folder is deleted and a missing folder is ignored");
 
@@ -65,7 +77,17 @@ public static class InstallationTests
         b.Install = new InstallationStatus { Configured = true, CoreDiffers = true, Registered = true, Newer = true }; s.Refresh();
         check(!s.Presentation.CanUpdate && s.Presentation.Code == "waiting", "A newer installed core is left alone");
         s = Scenarios.Create("update"); s.GlobalAsync("remove", s.Scope.Signature).GetAwaiter().GetResult();
-        check(!s.Installation.NeedsUpdate && !s.Scope.HasChanges, "Removing every device setting leaves nothing to update");
+        check(!s.Installation.NeedsUpdate && !s.Scope.HasChanges && s.Message != null, "Removing every device setting leaves nothing to update and keeps its own result");
+
+        s = Scenarios.Create("update"); b = (SimulationBackend)s.Backend;
+        s.UpdateInstallationAsync().GetAwaiter().GetResult(); s.Refresh();
+        check(s.Message != null && s.Message.Contains("音訊核心已更新"), "A result stays visible across later refreshes");
+        b.Setup = new SetupScope { Signature = "uninstalled from Windows Settings" }; s.Refresh();
+        check(s.Message == null, "A result is cleared once another program changes the configuration it describes");
+        s = Scenarios.Create("waiting"); b = (SimulationBackend)s.Backend; b.Devices.Clear();
+        s.ToggleAsync(false).GetAwaiter().GetResult();
+        b.Setup = new SetupScope { Signature = "changed elsewhere" }; s.Refresh();
+        check(s.MessageError && s.Message != null, "An error stays visible when the configuration changes");
 
         if (Application.Current == null) new Application();
         foreach (var expected in new[] { Tuple.Create("update", true, "更新音訊核心"), Tuple.Create("waiting", false, (string)null) })

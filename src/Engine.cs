@@ -528,8 +528,9 @@ namespace ChannelFlip
             var files = new List<string> { InstalledDll, CoreBackup, InstalledApp, Path.Combine(SharedDirectory, "setup-error.txt") };
             foreach (var folder in new[] { coreDirectory, InstallDirectory, stateDirectory, results }.Where(Directory.Exists))
                 files.AddRange(Directory.GetFiles(folder).Where(f => folder == stateDirectory ? f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase) :
-                    folder == results ? f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) : f.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)));
-            var pending = InstallationFiles.Delete(files, 12, TimeSpan.FromMilliseconds(250));
+                    folder == results ? f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) :
+                    f.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".delete", StringComparison.OrdinalIgnoreCase)));
+            var pending = InstallationFiles.Delete(files, 12, TimeSpan.FromMilliseconds(250)).Select(InstallationFiles.MoveAside).ToList();
             var folders = InstallationFiles.DeleteEmptyDirectories(new[] { coreDirectory, InstallDirectory, stateDirectory, results, SharedDirectory });
             // A running uninstaller cannot delete its own EXE; Windows removes what is left at the next restart.
             foreach (string path in pending.Concat(folders))

@@ -57,6 +57,15 @@ namespace ChannelFlip
             }
             return remaining;
         }
+        // A running EXE or loaded DLL can be renamed but not deleted. Renaming it before scheduling the deletion
+        // frees its name, so a reinstall before the restart keeps its new file.
+        public static string MoveAside(string path)
+        {
+            string target = path + "." + Guid.NewGuid().ToString("N") + ".delete";
+            try { File.Move(path, target); return target; }
+            catch (IOException) { return path; }
+            catch (UnauthorizedAccessException) { return path; }
+        }
         public static void DeleteAtRestart(string path)
         {
             const int DelayUntilReboot = 4;
