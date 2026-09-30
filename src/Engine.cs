@@ -524,7 +524,8 @@ namespace ChannelFlip
             using (var machine = Machine())
             using (var clsid = machine.OpenSubKey(@"SOFTWARE\Classes\CLSID\" + Clsid)) if (clsid != null) return;
             string coreDirectory = Path.GetDirectoryName(InstalledDll), stateDirectory = Path.Combine(SharedDirectory, "State"), results = Path.Combine(SharedDirectory, "SetupResults");
-            var files = new List<string> { InstalledDll, CoreBackup, InstalledApp };
+            // setup-error.txt is where 2.2.0 and earlier recorded failed setups.
+            var files = new List<string> { InstalledDll, CoreBackup, InstalledApp, Path.Combine(SharedDirectory, "setup-error.txt") };
             foreach (var folder in new[] { coreDirectory, InstallDirectory, stateDirectory, results }.Where(Directory.Exists))
                 files.AddRange(Directory.GetFiles(folder).Where(f => folder == stateDirectory ? f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase) :
                     folder == results ? f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) : f.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)));
