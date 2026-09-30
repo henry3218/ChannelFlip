@@ -18,7 +18,7 @@ $package = Join-Path $dist ('ChannelFlip-' + $Version + '-windows-x64.zip')
 if (Test-Path -LiteralPath $package) { throw ('Package already exists; select a new version or move it before rebuilding: ' + $package) }
 Copy-Item -LiteralPath $exe -Destination (Join-Path $stage 'ChannelFlip.exe')
 if ((Get-ArtifactHash (Join-Path $stage 'ChannelFlip.exe')) -ne $tests.applicationSha256) { throw 'EXE changed while staging the package.' }
-$documents = [ordered]@{'app/使用說明.txt'='README.txt';'app/README.en.txt'='README.en.txt';'LICENSE'='LICENSE';'THIRD_PARTY_NOTICES.txt'='THIRD_PARTY_NOTICES.txt';'FIRST_RUN.md'='FIRST_RUN.md';'FIRST_RUN.en.md'='FIRST_RUN.en.md';'VALIDATION.md'='VALIDATION.md';'VALIDATION.en.md'='VALIDATION.en.md'}
+$documents = [ordered]@{'app/README.txt'='README.txt';'app/README.zh-TW.txt'='README.zh-TW.txt';'LICENSE'='LICENSE';'THIRD_PARTY_NOTICES.txt'='THIRD_PARTY_NOTICES.txt';'FIRST_RUN.md'='FIRST_RUN.md';'FIRST_RUN.zh-TW.md'='FIRST_RUN.zh-TW.md';'VALIDATION.md'='VALIDATION.md';'VALIDATION.zh-TW.md'='VALIDATION.zh-TW.md'}
 foreach ($sourcePath in $documents.Keys) {
     $inputRecord = @($build.Context.source.files | Where-Object { $_.path -eq $sourcePath })
     $destination = Join-Path $stage $documents[$sourcePath]

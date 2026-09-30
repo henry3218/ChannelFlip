@@ -43,7 +43,7 @@ Document tested Windows builds and devices, and list bypass paths such as ASIO, 
 
 Open sourcing the program does not change Windows audio-signature requirements. Explain the protected-audio setting before users enable the unsigned core, including its system-wide scope, persistence and possible DRM impact.
 
-For a future release that keeps the protected audio host enabled, see [SIGNING.en.md](SIGNING.en.md). A generic EXE signature or an EV enrollment certificate alone is not evidence that the APO can load in that protected environment.
+For a future release that keeps the protected audio host enabled, see [SIGNING.md](SIGNING.md). A generic EXE signature or an EV enrollment certificate alone is not evidence that the APO can load in that protected environment.
 
 ## Publication
 

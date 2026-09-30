@@ -1,6 +1,6 @@
-左右聲道互換 · 獨立版 2.2.0 預覽版
+左右聲道互換 · 獨立版
 
-English instructions: README.en.txt
+English instructions: README.txt
 右上角可切換繁體中文／English，程式會記住你的選擇。
 切換語言保留裝置、互換開關與本次聽感確認；Windows 裝置名稱不翻譯。
 
@@ -32,15 +32,16 @@ English instructions: README.en.txt
 • 重新啟動電腦音訊服務：所有音訊輸出會短暫中斷。
 • 移除所有裝置的設定：包含離線裝置；確認清單後還原本程式的變更，並重新啟動音訊服務。
 
-此預覽版音訊核心尚未取得 Microsoft 音訊簽章。
+此版本的音訊核心尚未取得 Microsoft 音訊簽章。
 首次啟用需將 DisableProtectedAudioDG 設為 1，作用於整台電腦；
 部分要求受保護音訊路徑的 DRM 播放可能受影響。
 關閉互換或視窗會保留這項設定，移除時依備份還原。
+啟用前請先閱讀 FIRST_RUN.zh-TW.md。
 
 作用於所選裝置的 Windows 共用模式音效路徑。
 ASIO、獨佔模式、RAW、音訊直通及停用音效強化可能繞過處理。
 單聲道沒有左右差異，多聲道只交換前方 L/R。
-Windows 10 尚未實測。詳細測試範圍見原始碼倉庫的 VALIDATION.md。
+Windows 10 尚未實測。詳細測試範圍見 VALIDATION.zh-TW.md。
 
 開發資料夾 work 和其他原始檔不是執行必要條件。
 散布程式時請保留 LICENSE 與 THIRD_PARTY_NOTICES.txt。

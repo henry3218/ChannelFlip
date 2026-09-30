@@ -1,4 +1,6 @@
-Channel Flip 2.2.0 Preview — standalone left/right audio swap
+Channel Flip — standalone left/right audio swap
+
+繁體中文說明：README.zh-TW.txt
 
 Run ChannelFlip.exe. Original project code is MIT licensed.
 The EXE contains its own audio core. Equalizer APO, a virtual sound card,
@@ -41,16 +43,16 @@ Advanced settings:
 - Remove all device settings: review all configured devices, including offline
   ones, restore managed changes, and restart audio services.
 
-This preview core has no Microsoft audio signature. First-time setup requires
+This audio core has no Microsoft audio signature. First-time setup requires
 the system-wide DisableProtectedAudioDG=1 setting. DRM playback requiring
 protected audio may be affected. Turning swap off or closing the window keeps
 this setting; removal restores it according to the saved backup.
-Read FIRST_RUN.en.md before enabling the unsigned core.
+Read FIRST_RUN.md before enabling the unsigned core.
 
 Processing applies to the selected Windows shared-mode audio effects path.
 ASIO, exclusive mode, RAW, passthrough, or disabled enhancements may bypass it.
 Mono has no stereo direction. Multichannel processing swaps only front L/R.
-Windows 10 has not been tested. See VALIDATION.en.md for the tested scope.
+Windows 10 has not been tested. See VALIDATION.md for the tested scope.
 
 Keep LICENSE and THIRD_PARTY_NOTICES.txt when redistributing.
 Source and updates: https://github.com/henry3218/ChannelFlip
