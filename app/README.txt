@@ -43,6 +43,13 @@ Advanced settings:
 - Remove all device settings: review all configured devices, including offline
   ones, restore managed changes, and restart audio services.
 
+Setup copies ChannelFlip.exe to Program Files and adds Channel Flip to Apps in
+Windows Settings. Uninstalling it there restores the same changes as Remove all
+device settings and deletes the installed files.
+When a new version includes a newer audio core, choose Update audio core.
+If a Windows or driver update removes a device's setup, choose Set up this
+device again.
+
 This audio core has no Microsoft audio signature. First-time setup requires
 the system-wide DisableProtectedAudioDG=1 setting. DRM playback requiring
 protected audio may be affected. Turning swap off or closing the window keeps

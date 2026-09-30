@@ -19,16 +19,23 @@ This requirement comes from the [protected environment and testing guidance in M
 ## Setup steps performed by the application
 
 1. Extract the embedded DLL to `%ProgramFiles%\ChannelFlip\2.0\ChannelFlipApo.dll` and register Channel Flip's own COM/APO class.
-2. Save the selected device's original effects settings in the Journal under `HKLM\SOFTWARE\ChannelFlip\Devices\{device GUID}`. Retain the original effect while attaching the swap core.
-3. Create `%ProgramData%\ChannelFlip\State\{device GUID}.bin` for immediate switching and processing counters.
-4. Apply the audio host setting and restart audio services. Computer audio is briefly interrupted.
-5. Play two short tones to check core processing. Report failure and attempt restoration if processing is not detected.
+2. Copy `ChannelFlip.exe` to `%ProgramFiles%\ChannelFlip\` and add **Channel Flip** to **Apps** in Windows Settings, so it can be uninstalled after the download folder is gone.
+3. Save the selected device's original effects settings in the Journal under `HKLM\SOFTWARE\ChannelFlip\Devices\{device GUID}`. Retain the original effect while attaching the swap core.
+4. Create `%ProgramData%\ChannelFlip\State\{device GUID}.bin` for immediate switching and processing counters.
+5. Apply the audio host setting and restart audio services. Computer audio is briefly interrupted.
+6. Play two short tones to check core processing. Report failure and attempt restoration if processing is not detected.
 
 The `2.0` installation folder identifies the native core location; later interface versions can use that unchanged core.
 
+## Updating
+
+When a new version includes a different audio core, the main window offers **Update audio core**. With administrator approval, it stops audio services, replaces the core, starts them again and, if the selected device is connected, plays two tones to check the new core. If that check fails, the previous core is restored. Installations from 2.3.0 or earlier are offered **Add to Apps list** instead when their core is unchanged; that step does not interrupt audio.
+
+If a Windows or audio driver update resets a device's sound effects, swapping stops and the device shows **Windows removed the swap setup**. Choose **Set up this device again**; the old backup record is cleared and the device is attached again.
+
 ## Restore the previous configuration
 
-Choose **Remove all device settings** in **Advanced settings** and complete Windows administrator approval. The program restores its saved effects configuration, removes its class registration, restores the previous audio host setting, and restarts audio services. Registry values subsequently changed by another program are preserved. Extracted DLL/state files may remain on disk but are no longer registered in the audio path.
+Uninstall **Channel Flip** from **Apps** in Windows Settings, or choose **Remove all device settings** in **Advanced settings**, and complete Windows administrator approval. The program restores its saved effects configuration, removes its class registration and Apps entry, restores the previous audio host setting, restarts audio services, and then deletes the files it installed under `%ProgramFiles%\ChannelFlip` and `%ProgramData%\ChannelFlip`. Files still in use, such as the uninstaller that is running, are deleted when Windows restarts. Registry values subsequently changed by another program are preserved. Your language and device preferences in `%LocalAppData%\ChannelFlip` are kept.
 
 **Turn off all configured swaps** only restores the original channel direction. The core and audio host setting remain installed.
 

@@ -21,6 +21,8 @@ namespace ChannelFlip
     public sealed class EngineStatus
     {
         public bool Attached;
+        // A setup journal without an attachment: Windows or a driver update reset the endpoint's effects.
+        public bool Known;
         public bool Enabled;
         public int Loads;
         public long Frames;
@@ -41,7 +43,25 @@ namespace ChannelFlip
         public const string DisableEnhancements = "{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},5";
         public const int StateMagic = 0x50464c43;
         public static string SharedDirectory { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ChannelFlip"); } }
-        public static string InstalledDll { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ChannelFlip", "2.0", "ChannelFlipApo.dll"); } }
+        public static string InstallDirectory { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "ChannelFlip"); } }
+        public static string InstalledDll { get { return Path.Combine(InstallDirectory, "2.0", "ChannelFlipApo.dll"); } }
+        // Windows lists the uninstaller from Program Files, so it outlives the download folder.
+        public static string InstalledApp { get { return Path.Combine(InstallDirectory, "ChannelFlip.exe"); } }
+        public const string UninstallPath = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ChannelFlip";
+        public static Version AppVersion { get { return Assembly.GetExecutingAssembly().GetName().Version; } }
+        private static byte[] embeddedCore;
+        public static byte[] EmbeddedCore()
+        {
+            if (embeddedCore != null) return embeddedCore;
+            using (Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("ChannelFlip.Native.dll"))
+            {
+                if (resource == null) throw new InvalidDataException(L10n.T("程式缺少內建音訊核心，請重新編譯。"));
+                byte[] bytes = new byte[resource.Length];
+                int offset = 0;
+                while (offset < bytes.Length) { int n = resource.Read(bytes, offset, bytes.Length - offset); if (n == 0) throw new EndOfStreamException(); offset += n; }
+                return embeddedCore = bytes;
+            }
+        }
         private static RegistryKey Machine() { return RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64); }
         public static string GuidText(string id)
         {
@@ -57,9 +77,10 @@ namespace ChannelFlip
             id = GuidText(id);
             var status = new EngineStatus();
             using (var machine = Machine())
-            using (var fx = machine.OpenSubKey(FxPath(id)))
             {
-                if (fx != null) status.Attached = new[] { 2, 6, 7 }.Any(slot => String.Equals(fx.GetValue(FxPrefix + slot) as string, Clsid, StringComparison.OrdinalIgnoreCase));
+                using (var fx = machine.OpenSubKey(FxPath(id)))
+                    if (fx != null) status.Attached = new[] { 2, 6, 7 }.Any(slot => String.Equals(fx.GetValue(FxPrefix + slot) as string, Clsid, StringComparison.OrdinalIgnoreCase));
+                using (var device = machine.OpenSubKey(RegistryPath + @"\Devices\" + id)) status.Known = device != null && device.GetValue("Journal") != null;
             }
             string path = StatePath(id);
             if (!File.Exists(path)) return status;
@@ -115,7 +136,7 @@ namespace ChannelFlip
         public static SetupScope ReadScope()
         {
             var devices = new List<SetupDevice>(); var edits = new List<RegistryEdit>();
-            var fingerprint = new StringBuilder(); bool hostSettings, registered;
+            var fingerprint = new StringBuilder(); bool hostSettings, registered, installed;
             using (var machine = Machine())
             {
                 foreach (string id in KnownDevices().OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
@@ -134,10 +155,11 @@ namespace ChannelFlip
                     if (journal != null) edits.AddRange(RegistryEdit.Deserialize(journal));
                 }
                 using (var key = machine.OpenSubKey(@"SOFTWARE\Classes\CLSID\" + Clsid)) registered = key != null;
+                using (var key = machine.OpenSubKey(UninstallPath)) installed = key != null;
             }
-            fingerprint.Append(registered);
+            fingerprint.Append(registered).Append(installed);
             using (var sha = SHA256.Create()) return new SetupScope { Devices = devices.ToArray(), Changes = edits.ToArray(),
-                HostSettings = hostSettings, CoreRegistered = registered,
+                HostSettings = hostSettings, CoreRegistered = registered, Installed = installed,
                 Signature = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(fingerprint.ToString()))).Replace("-", "").ToLowerInvariant() };
         }
         public static SetupScope CheckScope(string expected)
@@ -179,6 +201,22 @@ namespace ChannelFlip
         {
             int code = await RunAdmin("--restart-audio");
             if (code != 0) throw new IOException("Unexpected setup exit code: " + code);
+        }
+        public static async Task UpdateInstallation(string id)
+        {
+            int code = await RunAdmin("--update-installation" + (id == null ? "" : " " + GuidText(id)));
+            if (code != 0) throw new IOException("Unexpected setup exit code: " + code);
+        }
+        public static InstallationStatus ReadInstallation()
+        {
+            string recorded; bool entry;
+            using (var machine = Machine())
+            {
+                using (var key = machine.OpenSubKey(RegistryPath)) recorded = key == null ? null : key.GetValue("InstalledVersion") as string;
+                using (var key = machine.OpenSubKey(UninstallPath)) entry = key != null;
+            }
+            return InstallationStatus.Evaluate(KnownDevices().Length != 0, EmbeddedCore(), File.Exists(InstalledDll) ? File.ReadAllBytes(InstalledDll) : null,
+                entry && File.Exists(InstalledApp), recorded, AppVersion);
         }
         internal static string SetupResultPath(string operationId)
         { return Path.Combine(SharedDirectory, "SetupResults", Guid.ParseExact(operationId, "N").ToString("N") + ".txt"); }
@@ -233,27 +271,22 @@ namespace ChannelFlip
                 if (fx == null) throw new NotSupportedException(L10n.T("此裝置未提供系統音效設定，尚不支援直接接入。"));
                 if (fx.GetValue(FxPrefix + 14) != null) throw new NotSupportedException(L10n.T("這個裝置使用多重音效鏈，目前版本尚不支援安全接入。"));
             }
+            RefuseNewerInstallation();
+            byte[] core = EmbeddedCore();
+            bool replaceLoaded = false;
             Directory.CreateDirectory(Path.GetDirectoryName(InstalledDll));
-            using (Stream resource = Assembly.GetExecutingAssembly().GetManifestResourceStream("ChannelFlip.Native.dll"))
+            if (!File.Exists(InstalledDll)) File.WriteAllBytes(InstalledDll, core);
+            else if (!File.ReadAllBytes(InstalledDll).SequenceEqual(core))
             {
-                if (resource == null) throw new InvalidDataException(L10n.T("程式缺少內建音訊核心，請重新編譯。"));
-                byte[] bytes = new byte[resource.Length];
-                int offset = 0;
-                while (offset < bytes.Length) { int n = resource.Read(bytes, offset, bytes.Length - offset); if (n == 0) throw new EndOfStreamException(); offset += n; }
-                if (!File.Exists(InstalledDll)) File.WriteAllBytes(InstalledDll, bytes);
-                else if (!File.ReadAllBytes(InstalledDll).SequenceEqual(bytes))
-                {
-                    if (KnownDevices().Length != 0) throw new InvalidOperationException(L10n.T("已存在不同版本的音訊核心。請先在進階設定移除所有裝置的設定，再設定新版。"));
-                    string staged = InstalledDll + "." + Guid.NewGuid().ToString("N") + ".tmp";
-                    try { File.WriteAllBytes(staged, bytes); File.Replace(staged, InstalledDll, null); }
-                    finally { if (File.Exists(staged)) File.Delete(staged); }
-                }
+                // Configured devices may have the old core loaded; replace it while Windows audio is stopped below.
+                if (KnownDevices().Length != 0) replaceLoaded = true;
+                else ReplaceCore(core, null);
             }
 
+            // A journal without an attachment means Windows or a driver reset this endpoint, or an earlier
+            // setup stopped midway. Restore only values this program still owns, then set up from the current state.
+            RemoveDeviceAsAdmin(id);
             Directory.CreateDirectory(Path.GetDirectoryName(StatePath(id)));
-            using (var machine = Machine())
-            using (var saved = machine.OpenSubKey(RegistryPath + @"\Devices\" + id))
-                if (saved != null && saved.GetValue("Journal") != null) throw new InvalidOperationException(L10n.T("找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。"));
             CreateStateFile(StatePath(id));
             var permissions = File.GetAccessControl(StatePath(id));
             permissions.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.BuiltinUsersSid, null), FileSystemRights.Read | FileSystemRights.Write, AccessControlType.Allow));
@@ -282,9 +315,12 @@ namespace ChannelFlip
                     registry.Flush();
                 }
             }
+            string previousCore = replaceLoaded ? CoreBackup : null;
+            if (previousCore != null) InstallationFiles.Delete(new[] { previousCore }, 1, TimeSpan.Zero);
             try
             {
                 RegisterCore();
+                RegisterInstallation();
                 using (var machine = Machine())
                 using (var registry = machine.CreateSubKey(RegistryPath))
                 {
@@ -295,19 +331,140 @@ namespace ChannelFlip
                 if (NeedsAudioHostPermission()) RegistryEdit.Capture(AudioPath, ProtectionValue, 1, RegistryValueKind.DWord).Apply();
                 foreach (var change in changes) change.Apply();
                 SetEnabled(id, true);
-                RestartAudioService();
+                RestartAudioService(replaceLoaded ? (Action)delegate { ReplaceCore(core, previousCore); } : null);
                 TestTone.Play(device.Id, 0, System.Threading.CancellationToken.None);
                 TestTone.Play(device.Id, 1, System.Threading.CancellationToken.None);
                 var verified = Read(id);
                 if (verified.Error != 0 || verified.SwappedFrames == 0 || verified.HostProcess == 0)
                     throw new InvalidOperationException(L10n.T("Windows 未成功載入或執行音訊核心，已嘗試還原原本設定。核心錯誤：0x") + verified.Error.ToString("X8"));
+                if (previousCore != null) InstallationFiles.Delete(new[] { previousCore }, 1, TimeSpan.Zero);
             }
             catch
             {
-                try { RemoveDeviceAsAdmin(id); RestoreGlobalIfUnused(); RestartAudioService(); } catch (Exception rollback) { Program.Log(rollback); }
+                try
+                {
+                    RemoveDeviceAsAdmin(id); RestoreGlobalIfUnused();
+                    RestartAudioService(previousCore != null ? (Action)delegate { RestoreCore(previousCore); } : null);
+                    DeleteInstallationIfUnused();
+                }
+                catch (Exception rollback) { Program.Log(rollback); }
                 throw;
             }
         }
+
+        public static void UpdateInstallationAsAdmin(string id)
+        { SystemConfiguration.Run(delegate { UpdateInstallationCore(id); }); }
+        private static void UpdateInstallationCore(string id)
+        {
+            if (!IsAdministrator()) throw new UnauthorizedAccessException(L10n.T("需要 Windows 管理員授權。"));
+            RefuseNewerInstallation();
+            var status = ReadInstallation();
+            if (!status.Configured) throw new InvalidOperationException(L10n.T("尚未設定任何裝置，不需要更新。"));
+            if (status.InterruptsAudio)
+            {
+                byte[] core = EmbeddedCore(); string previousCore = CoreBackup;
+                InstallationFiles.Delete(new[] { previousCore }, 1, TimeSpan.Zero);
+                // Two tones prove the new core runs, when the selected device can show it.
+                var device = id == null ? null : AudioDevices.Enumerate().FirstOrDefault(x => x.Guid == GuidText(id));
+                var before = device == null || device.EnhancementsDisabled ? null : Read(device.Guid);
+                if (before != null && !before.Attached) before = null;
+                try
+                {
+                    RestartAudioService(delegate { ReplaceCore(core, previousCore); });
+                    if (before != null)
+                    {
+                        TestTone.Play(device.Id, 0, System.Threading.CancellationToken.None);
+                        TestTone.Play(device.Id, 1, System.Threading.CancellationToken.None);
+                        var after = Read(device.Guid);
+                        if (after.Error != 0 || after.HostProcess == 0 || after.Frames <= before.Frames)
+                            throw new InvalidOperationException(L10n.T("新的音訊核心未能在 Windows 中運作，已還原原本的核心。核心錯誤：0x") + after.Error.ToString("X8"));
+                    }
+                }
+                catch
+                {
+                    try { if (File.Exists(previousCore)) RestartAudioService(delegate { RestoreCore(previousCore); }); } catch (Exception rollback) { Program.Log(rollback); }
+                    throw;
+                }
+                InstallationFiles.Delete(new[] { previousCore }, 1, TimeSpan.Zero);
+            }
+            RegisterInstallation();
+        }
+        private static void RefuseNewerInstallation()
+        {
+            var status = ReadInstallation();
+            if (status.Newer) throw new InvalidOperationException(L10n.T("這台電腦的音訊核心由較新版本（{0}）安裝。請使用較新版本的 Channel Flip。", status.InstalledVersion));
+        }
+        private static string CoreBackup { get { return InstalledDll + ".previous"; } }
+        // The backup is written before the core changes, so a failed check can always restore it.
+        private static void ReplaceCore(byte[] core, string backup)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(InstalledDll));
+            string staged = InstalledDll + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllBytes(staged, core);
+                if (backup != null && File.Exists(InstalledDll)) Retry(delegate { File.Copy(InstalledDll, backup, true); });
+                Retry(delegate { if (File.Exists(InstalledDll)) File.Replace(staged, InstalledDll, null); else File.Move(staged, InstalledDll); });
+            }
+            finally { if (File.Exists(staged)) File.Delete(staged); }
+        }
+        // Only a backup written by this operation exists; stale ones are deleted before it starts.
+        private static void RestoreCore(string backup)
+        {
+            if (!File.Exists(backup)) return;
+            Retry(delegate { File.Copy(backup, InstalledDll, true); });
+            File.Delete(backup);
+        }
+        // The audio host can release the core a moment after its service reports stopped.
+        private static void Retry(Action action)
+        {
+            for (int attempt = 1; ; attempt++)
+            {
+                try { action(); return; }
+                catch (IOException) { if (attempt >= 20) throw; }
+                catch (UnauthorizedAccessException) { if (attempt >= 20) throw; }
+                System.Threading.Thread.Sleep(250);
+            }
+        }
+        private static void RegisterInstallation()
+        {
+            string version = AppVersion.ToString(3);
+            using (var machine = Machine())
+            using (var registry = machine.CreateSubKey(RegistryPath)) { registry.SetValue("InstalledVersion", version); registry.Flush(); }
+            if (!CopyApp()) return;
+            long bytes = new FileInfo(InstalledApp).Length + (File.Exists(InstalledDll) ? new FileInfo(InstalledDll).Length : 0);
+            WriteUninstallEntry(InstalledApp, version, (bytes + 1023) / 1024);
+        }
+        // Without its own copy, Windows would list an uninstaller that disappears with the download folder.
+        private static bool CopyApp()
+        {
+            string current = Assembly.GetExecutingAssembly().Location;
+            try
+            {
+                if (String.Equals(Path.GetFullPath(current), Path.GetFullPath(InstalledApp), StringComparison.OrdinalIgnoreCase)) return true;
+                Directory.CreateDirectory(InstallDirectory);
+                string staged = InstalledApp + "." + Guid.NewGuid().ToString("N") + ".tmp";
+                try { File.Copy(current, staged); if (File.Exists(InstalledApp)) File.Replace(staged, InstalledApp, null); else File.Move(staged, InstalledApp); }
+                finally { if (File.Exists(staged)) File.Delete(staged); }
+                return true;
+            }
+            catch (Exception ex) { Program.Log(ex); return File.Exists(InstalledApp); }
+        }
+        public static void WriteUninstallEntry(string app, string version, long sizeKb)
+        {
+            using (var machine = Machine())
+            using (var key = machine.CreateSubKey(UninstallPath))
+            {
+                key.SetValue("DisplayName", "Channel Flip"); key.SetValue("DisplayVersion", version);
+                key.SetValue("Publisher", "Channel Flip contributors"); key.SetValue("DisplayIcon", app + ",0");
+                key.SetValue("InstallLocation", Path.GetDirectoryName(app)); key.SetValue("UninstallString", "\"" + app + "\" --uninstall");
+                key.SetValue("URLInfoAbout", "https://github.com/henry3218/ChannelFlip");
+                key.SetValue("NoModify", 1, RegistryValueKind.DWord); key.SetValue("NoRepair", 1, RegistryValueKind.DWord);
+                key.SetValue("EstimatedSize", (int)Math.Min(Int32.MaxValue, sizeKb), RegistryValueKind.DWord);
+                key.Flush();
+            }
+        }
+        public static void RemoveUninstallEntry() { using (var machine = Machine()) machine.DeleteSubKeyTree(UninstallPath, false); }
 
         private static void RegisterCore()
         {
@@ -352,10 +509,46 @@ namespace ChannelFlip
                             foreach (var edit in RegistryEdit.Deserialize(journal)) edit.RestoreIfOwned();
                             key.DeleteValue("ProtectionJournal", false);
                         }
+                        key.DeleteValue("InstalledVersion", false);
                     }
                 }
                 machine.DeleteSubKeyTree(@"SOFTWARE\Classes\CLSID\" + Clsid, false);
                 machine.DeleteSubKeyTree(@"SOFTWARE\Classes\AudioEngine\AudioProcessingObjects\" + Clsid, false);
+            }
+            RemoveUninstallEntry();
+        }
+        // Runs after the audio service restarts, when Windows no longer holds the unregistered core.
+        private static void DeleteInstallationIfUnused()
+        {
+            if (KnownDevices().Length != 0) return;
+            using (var machine = Machine())
+            using (var clsid = machine.OpenSubKey(@"SOFTWARE\Classes\CLSID\" + Clsid)) if (clsid != null) return;
+            string coreDirectory = Path.GetDirectoryName(InstalledDll), stateDirectory = Path.Combine(SharedDirectory, "State"), results = Path.Combine(SharedDirectory, "SetupResults");
+            var files = new List<string> { InstalledDll, CoreBackup, InstalledApp };
+            foreach (var folder in new[] { coreDirectory, InstallDirectory, stateDirectory, results }.Where(Directory.Exists))
+                files.AddRange(Directory.GetFiles(folder).Where(f => folder == stateDirectory ? f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase) :
+                    folder == results ? f.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) : f.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)));
+            var pending = InstallationFiles.Delete(files, 12, TimeSpan.FromMilliseconds(250));
+            var folders = InstallationFiles.DeleteEmptyDirectories(new[] { coreDirectory, InstallDirectory, stateDirectory, results, SharedDirectory });
+            // A running uninstaller cannot delete its own EXE; Windows removes what is left at the next restart.
+            foreach (string path in pending.Concat(folders))
+            {
+                try { InstallationFiles.DeleteAtRestart(path); }
+                catch (Exception ex) { Program.Log(ex); }
+            }
+            DeleteRegistryRootIfEmpty();
+        }
+        private static void DeleteRegistryRootIfEmpty()
+        {
+            using (var machine = Machine())
+            {
+                using (var root = machine.OpenSubKey(RegistryPath))
+                {
+                    if (root == null || root.ValueCount != 0) return;
+                    foreach (string name in root.GetSubKeyNames())
+                        using (var child = root.OpenSubKey(name)) if (child != null && (child.ValueCount != 0 || child.SubKeyCount != 0)) return;
+                }
+                machine.DeleteSubKeyTree(RegistryPath, false);
             }
         }
         public static void RemoveAsAdmin() { RemoveAsAdmin(null); }
@@ -368,10 +561,13 @@ namespace ChannelFlip
             foreach (string id in scope.Devices.Select(d => d.Id)) RemoveDeviceAsAdmin(id);
             RestoreGlobalIfUnused();
             RestartAudioService();
+            DeleteInstallationIfUnused();
         }
-        public static void RestartAudioService()
-        { SystemConfiguration.Run(RestartAudioCore); }
-        private static void RestartAudioCore()
+        public static void RestartAudioService() { RestartAudioService(null); }
+        // whileStopped runs with Windows audio stopped, so no audio host holds the core.
+        private static void RestartAudioService(Action whileStopped)
+        { SystemConfiguration.Run(delegate { RestartAudioCore(whileStopped); }); }
+        private static void RestartAudioCore(Action whileStopped)
         {
             if (!IsAdministrator()) throw new UnauthorizedAccessException();
             using (var service = new ServiceController("Audiosrv"))
@@ -383,7 +579,8 @@ namespace ChannelFlip
                 try
                 {
                     if (service.Status != ServiceControllerStatus.Stopped) { service.Stop(); service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(25)); }
-                    service.Start(); service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(25));
+                    try { if (whileStopped != null) whileStopped(); }
+                    finally { service.Start(); service.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(25)); }
                 }
                 finally
                 {

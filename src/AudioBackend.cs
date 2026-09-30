@@ -14,8 +14,8 @@ namespace ChannelFlip
         public string Signature;
         public SetupDevice[] Devices = new SetupDevice[0];
         public RegistryEdit[] Changes = new RegistryEdit[0];
-        public bool HostSettings, CoreRegistered;
-        public bool HasChanges { get { return Devices.Length != 0 || HostSettings || CoreRegistered; } }
+        public bool HostSettings, CoreRegistered, Installed;
+        public bool HasChanges { get { return Devices.Length != 0 || HostSettings || CoreRegistered || Installed; } }
     }
     public interface IAudioBackend
     {
@@ -29,6 +29,8 @@ namespace ChannelFlip
         Task Toggle(string id, bool enabled);
         Task Play(string id, int channel, CancellationToken cancellation);
         Task<LocalizedText> Global(string action, string scope);
+        InstallationStatus Installation();
+        Task UpdateInstallation(string id);
     }
     public sealed class WindowsAudioBackend : IAudioBackend
     {
@@ -51,6 +53,8 @@ namespace ChannelFlip
             catch (System.ComponentModel.Win32Exception) { return false; }
         }
         public Task Attach(string id, bool allowHostChange) { return Engine.Attach(id, allowHostChange); }
+        public InstallationStatus Installation() { return Engine.ReadInstallation(); }
+        public Task UpdateInstallation(string id) { return Engine.UpdateInstallation(id); }
         public Task Toggle(string id, bool enabled) { return Task.Run(delegate { Engine.SetEnabled(id, enabled); }); }
         public Task Play(string id, int channel, CancellationToken cancellation) { return Task.Run(delegate { TestTone.Play(id, channel, cancellation); }); }
         public async Task<LocalizedText> Global(string action, string expected)
@@ -69,8 +73,9 @@ namespace ChannelFlip
             if (Engine.ReadScope().HasChanges) throw new IOException(L10n.T("移除尚未完成，仍有本程式的設定。請檢查進階設定中的剩餘清單。"));
             int unrestored = owned.Count(e => !e.MatchesBefore());
             if (unrestored > 0) throw new IOException(L10n.T("本程式已解除登記，但有 {0} 項設定未能確認還原，可能在操作期間被修改。請保留診斷資訊。", unrestored));
-            return L10n.M("已移除所有裝置的設定，並確認本程式管理的設定已還原。{0} 電腦音訊服務已重新啟動。",
-                external.Length > 0 ? (object)L10n.M("另保留了 {0} 項外部修改。", external.Length) : "");
+            return L10n.M("已移除所有裝置的設定，並確認本程式管理的設定已還原。{0} 電腦音訊服務已重新啟動。{1}",
+                external.Length > 0 ? (object)L10n.M("另保留了 {0} 項外部修改。", external.Length) : "",
+                Directory.Exists(Engine.InstallDirectory) ? (object)L10n.M("部分檔案仍在使用中，會在下次重新啟動 Windows 時刪除。") : "");
         }
     }
 
@@ -82,6 +87,7 @@ namespace ChannelFlip
         public List<OutputDevice> Devices = new List<OutputDevice>();
         public Dictionary<string, EngineStatus> States = new Dictionary<string, EngineStatus>();
         public SetupScope Setup = new SetupScope { Signature = "simulation" };
+        public InstallationStatus Install = new InstallationStatus();
         public List<string> Calls = new List<string>();
         public bool Alive = true, NoProcessing, CancelPlay;
         public string ReadFailure;
@@ -91,10 +97,16 @@ namespace ChannelFlip
         {
             if (ReadFailure != null) throw new IOException(ReadFailure);
             EngineStatus s; if (!States.TryGetValue(id, out s)) return new EngineStatus();
-            return new EngineStatus { Attached = s.Attached, Enabled = s.Enabled, Loads = s.Loads, Frames = s.Frames,
+            return new EngineStatus { Attached = s.Attached, Known = s.Known, Enabled = s.Enabled, Loads = s.Loads, Frames = s.Frames,
                 SwappedFrames = s.SwappedFrames, Channels = s.Channels, HostProcess = s.HostProcess, Error = s.Error };
         }
         public SetupScope Scope() { return Setup; }
+        public InstallationStatus Installation() { return Install; }
+        public Task UpdateInstallation(string id)
+        {
+            Calls.Add("update:" + id); Install = new InstallationStatus { Configured = true, Registered = true };
+            return Task.FromResult(0);
+        }
         public bool HostAlive(int pid) { return Alive && pid > 0; }
         public bool NeedsHostChange() { return true; }
         public Task Attach(string id, bool consent)
@@ -118,7 +130,7 @@ namespace ChannelFlip
         {
             if (signature != Setup.Signature) throw new InvalidOperationException(L10n.T("影響範圍已改變。"));
             Calls.Add(action);
-            if (action == "remove") { States.Clear(); Setup = new SetupScope { Signature = "removed" }; }
+            if (action == "remove") { States.Clear(); Setup = new SetupScope { Signature = "removed" }; Install = new InstallationStatus(); }
             if (action == "off") foreach (var state in States.Values) state.Enabled = false;
             return Task.FromResult(L10n.M("模擬操作完成：{0}", action));
         }

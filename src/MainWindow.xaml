@@ -123,6 +123,7 @@
      <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,11,0,0"><StackPanel>
       <TextBlock x:Name="RuntimeTitle" FontSize="{DynamicResource Font17}" FontWeight="SemiBold"/>
       <TextBlock x:Name="RuntimeDetail" FontSize="{DynamicResource Font14}" Margin="0,5,0,0" Foreground="{DynamicResource Muted}"/>
+      <Button x:Name="UpdateButton" Content="{DynamicResource Ui.更新音訊核心}" Background="{DynamicResource Accent}" Foreground="{DynamicResource AccentText}" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="0,10,0,0"/>
      </StackPanel></Border>
      <Grid Margin="0,12,0,10"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
       <StackPanel><TextBlock Text="{DynamicResource Ui.預期方向}" FontSize="{DynamicResource Font13}" Foreground="{DynamicResource Muted}"/><TextBlock x:Name="LeftMapping" FontSize="{DynamicResource Font16}" Margin="0,3,0,0"/></StackPanel>

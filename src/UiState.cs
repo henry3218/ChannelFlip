@@ -105,12 +105,13 @@ namespace ChannelFlip
 
     public sealed class UiState
     {
-        public string Code, Title, Detail, Setting, Action;
-        public bool Warning, Success, CanSetup, CanToggle, CanTest, Swap;
-        public static UiState Evaluate(OutputDevice device, EngineStatus engine, string error, ProcessingObservation observation, DateTime now)
+        public string Code, Title, Detail, Setting, Action, UpdateAction;
+        public bool Warning, Success, CanSetup, CanToggle, CanTest, CanUpdate, Swap;
+        public static UiState Evaluate(OutputDevice device, EngineStatus engine, string error, ProcessingObservation observation, DateTime now, InstallationStatus installation = null)
         {
             var result = new UiState { Setting = error != null ? L10n.T("未知") : !engine.Attached ? L10n.T("未設定") : engine.Enabled ? L10n.T("開啟") : L10n.T("關閉"),
-                Swap = error == null && engine.Attached && engine.Enabled, Action = engine.Attached ? (engine.Enabled ? L10n.T("關閉互換") : L10n.T("開啟互換")) : L10n.T("設定此裝置") };
+                Swap = error == null && engine.Attached && engine.Enabled,
+                Action = engine.Attached ? (engine.Enabled ? L10n.T("關閉互換") : L10n.T("開啟互換")) : engine.Known ? L10n.T("重新設定此裝置") : L10n.T("設定此裝置") };
             if (device == null && error != null) return result.With("read-error", L10n.T("無法取得裝置狀態"), L10n.T("請重新整理。錯誤詳情可在下方檢視。"), true);
             if (device == null) return result.With("empty", L10n.T("尚無輸出裝置"), L10n.T("請連接耳機或喇叭，再按重新整理。"), false);
             if (device.Offline) return result.With("offline", L10n.T("裝置已離線"), L10n.T("已保留這個裝置。重新連接，或手動選擇其他裝置。"), true);
@@ -120,7 +121,17 @@ namespace ChannelFlip
             result.CanTest = true;
             result.CanSetup = !engine.Attached;
             result.CanToggle = engine.Attached && (engine.Enabled || (engine.Error == 0 && !device.EnhancementsDisabled));
+            if (!engine.Attached && engine.Known)
+                return result.With("reset", L10n.T("互換設定已被 Windows 移除"), L10n.T("Windows 或音效驅動程式更新重設了這個裝置的音效設定，所以互換已停止。重新設定即可恢復。"), true);
             if (!engine.Attached) return result.With("setup", L10n.T("尚未設定"), L10n.T("首次設定後，即可直接開關互換。也能先測試原始方向。"), false);
+            if (installation != null && installation.NeedsUpdate)
+            {
+                result.CanUpdate = true;
+                result.UpdateAction = installation.InterruptsAudio ? L10n.T("更新音訊核心") : L10n.T("加入應用程式清單");
+                return installation.InterruptsAudio ?
+                    result.With("update", L10n.T("有新的音訊核心"), L10n.T("目前仍在使用舊版音訊核心。更新需要管理員授權，所有裝置的聲音會短暫中斷。"), true) :
+                    result.With("update", L10n.T("尚未加入 Windows 應用程式清單"), L10n.T("加入後可以從 Windows 設定解除安裝 Channel Flip。需要管理員授權，不會中斷聲音。"), false);
+            }
             if (engine.Error != 0) return result.With("core-error", L10n.T("核心異常"), L10n.T("可先關閉互換，或到進階設定重新啟動電腦音訊服務。"), true);
             if (device.EnhancementsDisabled) return result.With("enhancements-off", L10n.T("音效強化已關閉"), L10n.T("請在 Windows 音效中開啟此裝置的音效強化，再測試方向。"), true);
             if (observation.TestFailure != null) return result.With("test-failed", L10n.T("本次測試未通過"), observation.TestFailure, true);

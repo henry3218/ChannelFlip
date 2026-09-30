@@ -5,7 +5,7 @@ if (-not $OutputDirectory) { $OutputDirectory = Join-Path $projectRoot 'work\ui-
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
 if (-not $BuildDirectory) { $BuildDirectory = Join-Path $projectRoot 'app' }
 $exe = Join-Path $BuildDirectory 'ChannelFlip.exe'
-$scenarios = @('setup','waiting','processing','confirmed-idle','off','offline','empty','core-error','read-error','enhancements-off','unsupported','test-failed','busy','long-name')
+$scenarios = @('setup','waiting','processing','confirmed-idle','off','offline','empty','core-error','read-error','enhancements-off','unsupported','test-failed','busy','long-name','reset','update')
 $cases = @()
 foreach ($scenario in $scenarios) {
     foreach ($size in @(@(584,600),@(664,860))) {
@@ -18,7 +18,7 @@ foreach ($scenario in @('setup','core-error','long-name')) {
 foreach ($scenario in @('setup','processing','core-error','offline','empty')) {
     $cases += [pscustomobject]@{Scenario=$scenario;Width=584;Height=600;Dpi=144;Theme='contrast'}
 }
-foreach ($scenario in @('setup','confirmed-idle','off','core-error','long-name')) {
+foreach ($scenario in @('setup','confirmed-idle','off','core-error','long-name','reset','update')) {
     $cases += [pscustomobject]@{Scenario=$scenario;Width=584;Height=600;Dpi=96;Theme='normal';TextPercent=225}
 }
 $localizedCases = foreach ($language in $Languages) { foreach ($case in $cases) {

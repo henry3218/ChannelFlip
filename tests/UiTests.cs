@@ -145,7 +145,7 @@ public static class UiTests
             }
             finally { window.View.Close(); }
         }
-        foreach (string scenario in new[] { "setup", "confirmed-idle", "core-error", "long-name" })
+        foreach (string scenario in new[] { "setup", "confirmed-idle", "core-error", "long-name", "reset", "update" })
         {
             var window = new MainWindow(Scenarios.Create(scenario), true);
             try
