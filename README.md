@@ -10,10 +10,13 @@ Swap the left and right channels of your headphones or speakers on Windows. Wind
 
 **Useful when**
 
-- You have hearing loss on one side, or one earcup has failed, and you want the sound moved to the ear you can hear with
 - The cable or connector on your headphones or speakers is wired backwards
+- You wear a headset the other way round, for example to put a fixed microphone boom on your other side
 - The audio itself is reversed (old recordings, transfers, an editing mistake)
 - Your player, game or meeting app offers no left/right swap
+
+> [!TIP]
+> Hearing loss in one ear, or one earcup not working? Swapping only moves the other channel to your good ear. Windows' built-in **Mono audio** (Settings → Accessibility → Audio) plays both channels in both ears and suits that better.
 
 <p align="center">
   <img src="docs/images/channel-flip-en.png" alt="Channel Flip main window: output device picker, swap left/right toggle, and the two test buttons" width="584">
