@@ -12,7 +12,7 @@ This custom core has no Microsoft WHQL signature. To load it, setup sets the fol
 
 `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\DisableProtectedAudioDG`
 
-The original value is backed up. This setting disables the protected audio host's signature restriction and may affect DRM playback requiring a protected audio path. It stays in effect until restored with **Advanced settings → Remove all device settings**. Closing the window or turning swap off does not restore it.
+The original value is backed up. This setting disables the protected audio host's signature restriction and may affect DRM playback requiring a protected audio path. It stays in effect until you uninstall Channel Flip from **Apps** in Windows Settings or from **Advanced settings**. Closing the window or turning swap off does not restore it.
 
 This requirement comes from the [protected environment and testing guidance in Microsoft's APO documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/audio/implementing-audio-processing-objects#disable-use-of-an-embedded-manifest). It is not a requirement to install another audio program. This version does not call, bundle, or rename Equalizer APO's audio DLL.
 
@@ -35,8 +35,8 @@ If a Windows or audio driver update resets a device's sound effects, swapping st
 
 ## Restore the previous configuration
 
-Uninstall **Channel Flip** from **Apps** in Windows Settings, or choose **Remove all device settings** in **Advanced settings**, and complete Windows administrator approval. The program restores its saved effects configuration, removes its class registration and Apps entry, restores the previous audio host setting, restarts audio services, and then deletes the files it installed under `%ProgramFiles%\ChannelFlip` and `%ProgramData%\ChannelFlip`. Files still in use, such as the uninstaller that is running, are deleted when Windows restarts. Registry values subsequently changed by another program are preserved. Your language and device preferences in `%LocalAppData%\ChannelFlip` are kept.
+Uninstall **Channel Flip** from **Apps** in Windows Settings, or choose **Uninstall Channel Flip** in **Advanced settings**, and complete Windows administrator approval. The program restores its saved effects configuration, removes its class registration and Apps entry, restores the previous audio host setting, restarts audio services, and then deletes the files it installed under `%ProgramFiles%\ChannelFlip` and `%ProgramData%\ChannelFlip`. Files still in use, such as the uninstaller that is running, are deleted when Windows restarts. Registry values subsequently changed by another program are preserved. Your language and device preferences in `%LocalAppData%\ChannelFlip` are kept.
 
-**Turn off all configured swaps** only restores the original channel direction. The core and audio host setting remain installed.
+**Turn off swap on all devices** only restores the original channel direction. The core and audio host setting remain installed.
 
 Before removal, the application lists all configured devices, including offline ones, and explains the interruption to computer audio. The affected settings are checked again before execution and when the administrator operation starts. If the scope changes, the operation stops and asks you to review the list again.

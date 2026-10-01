@@ -12,7 +12,7 @@
 
 `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio\DisableProtectedAudioDG`
 
-程式會備份變更前的值。這項設定會停用受保護音訊宿主的簽章限制，作用範圍是整個系統，某些要求受保護音訊路徑的 DRM 播放可能受影響。它會持續存在，直到透過進階設定的「移除所有裝置的設定」還原；只關閉程式或關閉互換不會還原這項設定。
+程式會備份變更前的值。這項設定會停用受保護音訊宿主的簽章限制，作用範圍是整個系統，某些要求受保護音訊路徑的 DRM 播放可能受影響。它會持續存在，直到你從 Windows 設定的「應用程式」或進階設定解除安裝 Channel Flip；只關閉程式或關閉互換不會還原這項設定。
 
 這項需求來自 [Microsoft APO 文件中的受保護環境與測試設定](https://learn.microsoft.com/en-us/windows-hardware/drivers/audio/implementing-audio-processing-objects#disable-use-of-an-embedded-manifest)，不是另一套軟體的安裝要求。此版使用自製核心，沒有呼叫、封裝或更名使用 Equalizer APO 的音訊 DLL。
 
@@ -33,8 +33,8 @@
 
 ## 還原
 
-從 Windows 設定的「應用程式」解除安裝「Channel Flip」，或在進階設定按「移除所有裝置的設定」，並完成 Windows 管理員授權。程式會還原本程式保留的音效設定、移除自己的類別登記和應用程式清單項目、將音訊宿主設定恢復為安裝前狀態、重新啟動音訊服務，再刪除安裝在 `%ProgramFiles%\ChannelFlip` 和 `%ProgramData%\ChannelFlip` 的檔案。仍在使用中的檔案（例如正在執行的解除安裝程式）會在下次重新啟動 Windows 時刪除。已被外部程式改成不同內容的登錄值會保留。`%LocalAppData%\ChannelFlip` 裡的語言與裝置偏好會保留。
+從 Windows 設定的「應用程式」解除安裝「Channel Flip」，或在進階設定按「解除安裝 Channel Flip」，並完成 Windows 管理員授權。程式會還原本程式保留的音效設定、移除自己的類別登記和應用程式清單項目、將音訊宿主設定恢復為安裝前狀態、重新啟動音訊服務，再刪除安裝在 `%ProgramFiles%\ChannelFlip` 和 `%ProgramData%\ChannelFlip` 的檔案。仍在使用中的檔案（例如正在執行的解除安裝程式）會在下次重新啟動 Windows 時刪除。已被外部程式改成不同內容的登錄值會保留。`%LocalAppData%\ChannelFlip` 裡的語言與裝置偏好會保留。
 
-「關閉所有已設定裝置的互換」只恢復左右方向，仍保留核心與上述宿主設定。
+「關閉所有裝置的互換」只恢復左右方向，仍保留核心與上述宿主設定。
 
 移除前會列出所有已接入裝置（包含離線裝置），並說明整台電腦音訊會短暫中斷。執行前及管理員操作開始時會重新核對範圍；清單改變時停止並要求重新檢視。

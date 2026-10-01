@@ -212,7 +212,7 @@ namespace ChannelFlip
                 L10n.T("設定裝置：") + target.Name + L10n.T("\n\n本程式會備份此裝置的音效設定、接入內建音訊核心，並開啟左右互換。\n\n電腦音訊服務會重新啟動，所有裝置的聲音會短暫中斷；完成時會播放兩聲短音檢查核心。\n\n");
             text += needs ? L10n.T("此預覽版核心尚未取得 Microsoft 音訊簽章。首次設定需調整受保護音訊宿主設定（DisableProtectedAudioDG=1），作用於整台電腦，部分 DRM 音訊可能受影響。\n\n") :
                 L10n.T("此電腦目前已允許載入此音訊核心；本次會沿用現有的音訊宿主設定。\n\n");
-            text += L10n.T("關閉互換或視窗會保留系統設定。日後可以從 Windows 設定的「應用程式」解除安裝 Channel Flip，或在進階設定使用「移除所有裝置的設定」，還原本程式的變更。");
+            text += L10n.T("關閉互換或視窗會保留系統設定。日後可以從 Windows 設定的「應用程式」或進階設定解除安裝 Channel Flip，還原本程式的變更。");
             if (Dialog(reset ? L10n.T("重新設定此裝置") : L10n.T("設定此裝置"), text, L10n.T("設定並開啟互換")) != "accept") return;
             await Session.SetupAsync(target.Id, needs);
         }
@@ -252,14 +252,20 @@ namespace ChannelFlip
             if (Session.ScopeError != null) { Dialog(title, Session.ScopeError, null); return false; }
             var scope = Session.Scope;
             if (!scope.HasChanges) { Dialog(title, L10n.T("這台電腦上沒有 Channel Flip 需要還原的設定。"), null); return true; }
-            string names = ConfiguredDevices(scope);
-            string text = L10n.T("將還原本程式管理的裝置音效、核心登記及音訊宿主設定，並刪除 Channel Flip 安裝的檔案。外部程式已修改的設定會保留。") +
-                L10n.T("\n\n所有音訊輸出的聲音會短暫中斷。") + L10n.T("\n\n影響的已設定裝置：\n") + (names.Length == 0 ? L10n.T("沒有裝置；仍可能有全域設定。") : names);
-            if (Dialog(title, text, L10n.T("解除安裝")) != "accept") return false;
+            if (!ConfirmUninstall(scope)) return false;
             await Session.GlobalAsync("remove", scope.Signature);
             bool done = Session.LastOperation != null && !Session.LastOperation.Failed;
             Dialog(done ? L10n.T("已解除安裝 Channel Flip") : L10n.T("解除安裝未完成"), done ? Session.Message : Session.LastOperation.ErrorText, null);
             return done;
+        }
+        // Windows Settings and Advanced settings both uninstall, so they confirm with the same words.
+        private bool ConfirmUninstall(SetupScope scope)
+        {
+            string names = ConfiguredDevices(scope);
+            return Dialog(L10n.T("解除安裝 Channel Flip"),
+                L10n.T("會還原 Channel Flip 對這台電腦做過的所有變更：裝置的音效設定、音訊核心，以及允許載入未簽章核心的系統設定，並刪除安裝的檔案。其他程式之後改過的設定會保留。") +
+                L10n.T("\n\n所有音訊輸出的聲音會短暫中斷。") + L10n.T("\n\n影響的已設定裝置：\n") + (names.Length == 0 ? L10n.T("沒有裝置；仍可能有全域設定。") : names),
+                L10n.T("解除安裝")) == "accept";
         }
         private async System.Threading.Tasks.Task Advanced()
         {
@@ -268,31 +274,28 @@ namespace ChannelFlip
             if (Session.ScopeError != null) { Dialog(L10n.T("無法讀取進階設定"), Session.ScopeError, null); return; }
             var scope = Session.Scope;
             string names = ConfiguredDevices(scope);
-            string text = L10n.T("本程式已設定 {0} 個裝置。\n", scope.Devices.Length) + names +
-                L10n.T("\n\n關閉所有互換：只恢復這些裝置的左右方向，保留核心與系統設定。\n\n移除所有裝置的設定：還原本程式管理的裝置音效、核心登記及音訊宿主設定，包含離線裝置。外部程式已修改的設定會保留。\n\n重新啟動或移除時，整台電腦的音訊會短暫中斷。");
-            string choice = Dialog(L10n.T("進階設定"), text, null, scope);
+            string choice = Dialog(L10n.T("進階設定"), L10n.T("本程式已設定 {0} 個裝置。\n", scope.Devices.Length) + names, null, scope);
             if (choice == null) return;
-            string confirmation = choice == "remove" ? L10n.T("將移除上述所有裝置的設定，並還原本程式管理的系統變更。") :
-                choice == "off" ? L10n.T("將關閉上述所有裝置的互換，保留核心與系統設定。") : L10n.T("將重新啟動整台電腦的音訊服務。");
-            if (choice != "off") confirmation += L10n.T("\n\n所有音訊輸出的聲音會短暫中斷。");
-            if (Dialog(choice == "remove" ? L10n.T("移除所有裝置的設定") : choice == "off" ? L10n.T("關閉所有裝置的互換") : L10n.T("重新啟動電腦音訊服務"),
-                confirmation + L10n.T("\n\n影響的已設定裝置：\n") + (names.Length == 0 ? L10n.T("沒有裝置；仍可能有全域設定。") : names),
-                choice == "remove" ? L10n.T("還原並移除設定") : L10n.T("確認執行")) != "accept") return;
+            if (choice == "remove") { if (!ConfirmUninstall(scope)) return; }
+            else if (choice == "off" ?
+                Dialog(L10n.T("關閉所有裝置的互換"), L10n.T("將關閉所有已設定裝置的互換，恢復原本的左右方向。聲音不會中斷。") + L10n.T("\n\n影響的已設定裝置：\n") + names, L10n.T("關閉互換")) != "accept" :
+                Dialog(L10n.T("重新啟動電腦音訊服務"), L10n.T("將重新啟動 Windows 音訊服務，所有裝置的聲音會中斷約 1～2 秒。"), L10n.T("重新啟動")) != "accept") return;
             await Session.GlobalAsync(choice, scope.Signature);
         }
         public string Dialog(string title, string text, string accept, SetupScope scope = null)
         {
             dialogOpen = true; Update(); string result = null;
             var previousFocus = Keyboard.FocusedElement;
+            // The height follows the text, up to the work area; longer text scrolls.
             var window = new Window { Owner = View.IsVisible ? View : null, Title = title, Width = Math.Min(560, SystemParameters.WorkArea.Width - 32),
-                Height = Math.Min(580, SystemParameters.WorkArea.Height - 32), WindowStartupLocation = View.IsVisible ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
+                SizeToContent = SizeToContent.Height, MaxHeight = SystemParameters.WorkArea.Height - 32, WindowStartupLocation = View.IsVisible ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
                 Resources = View.Resources, FontFamily = View.FontFamily, FontSize = 14, ShowInTaskbar = !View.IsVisible, ResizeMode = ResizeMode.CanResize };
             window.SetResourceReference(Window.BackgroundProperty, "Page"); window.SetResourceReference(Window.ForegroundProperty, "Text");
             window.SetResourceReference(Window.FontSizeProperty, "Font14");
             var layout = new DockPanel { Margin = new Thickness(22) };
             var buttons = new WrapPanel { HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
             DockPanel.SetDock(buttons, Dock.Bottom); layout.Children.Add(buttons);
-            var cancel = new Button { Content = accept == null && scope == null ? L10n.T("關閉視窗") : L10n.T("取消"), IsCancel = true, Margin = new Thickness(6, 0, 0, 0) };
+            var cancel = new Button { Content = accept == null ? L10n.T("關閉視窗") : L10n.T("取消"), IsCancel = true, Margin = new Thickness(6, 0, 0, 0) };
             cancel.Click += delegate { window.Close(); }; buttons.Children.Add(cancel);
             if (accept != null)
             {
@@ -304,13 +307,23 @@ namespace ChannelFlip
             body.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap });
             if (scope != null)
             {
+                // Each action sits next to its own explanation, ordered from harmless to uninstalling.
                 string[] actions = { "off", "restart", "remove" };
-                string[] labels = { L10n.T("關閉所有已設定裝置的互換"), L10n.T("重新啟動電腦音訊服務"), L10n.T("移除所有裝置的設定") };
+                string[] labels = { L10n.T("關閉所有裝置的互換"), L10n.T("重新啟動電腦音訊服務"), L10n.T("解除安裝 Channel Flip") };
+                string[] notes = { L10n.T("只把左右方向恢復原狀，聲音不會中斷。之後可以在主視窗重新開啟。"),
+                    L10n.T("聲音異常，或狀態顯示錯誤時使用。所有裝置的聲音會中斷約 1～2 秒。"),
+                    L10n.T("還原本程式做過的所有系統變更，並刪除安裝的檔案，和從 Windows 設定解除安裝相同。聲音會短暫中斷。") };
                 for (int i = 0; i < actions.Length; i++)
                 {
                     string action = actions[i];
-                    var button = new Button { Content = labels[i], Margin = new Thickness(0, 12, 0, 0), IsEnabled = action == "restart" || (action == "off" ? scope.Devices.Length > 0 : scope.HasChanges) };
+                    var button = new Button { Content = labels[i], Margin = new Thickness(0, 18, 0, 0), HorizontalAlignment = HorizontalAlignment.Left,
+                        IsEnabled = action == "restart" || (action == "off" ? scope.Devices.Length > 0 : scope.HasChanges) };
+                    if (action == "remove") { button.SetResourceReference(Button.ForegroundProperty, "Warning"); button.SetResourceReference(Button.BorderBrushProperty, "Warning"); }
+                    AutomationProperties.SetHelpText(button, notes[i]);
                     button.Click += delegate { result = action; window.Close(); }; body.Children.Add(button);
+                    var note = new TextBlock { Text = notes[i], TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 0) };
+                    note.SetResourceReference(TextBlock.ForegroundProperty, "Muted"); note.SetResourceReference(TextBlock.FontSizeProperty, "Font13");
+                    body.Children.Add(note);
                 }
             }
             layout.Children.Add(new ScrollViewer { Content = body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
@@ -323,7 +336,7 @@ namespace ChannelFlip
         private void ShowHelp()
         {
             Dialog(L10n.T("使用說明 · Channel Flip ") + Assembly.GetExecutingAssembly().GetName().Version.ToString(3),
-                L10n.T("1. 選擇耳機或喇叭。首次按「設定此裝置」；完成後使用左右互換開關。\n\n2. 分別測試來源左、右聲道，再依聽到的方向確認。設定開啟不代表每個播放程式都已通過核心；運作狀態以近期處理證據顯示。\n\n3. 固定裝置會保留離線目標。跟隨系統預設只更新視窗的操作目標，各裝置設定獨立保存，新裝置仍須先設定。\n\n關閉視窗後，已接入裝置的互換設定會保留。進階設定可以關閉所有互換、重新啟動電腦音訊服務，或移除所有裝置的設定。\n\n作用範圍是所選裝置的 Windows 共用模式音訊。獨佔模式、ASIO、RAW 及停用音效強化可能繞過核心；藍牙免持模式可能是另一個端點。\n\n本程式採 MIT 授權，內建自己的音訊核心，無須 Equalizer APO。未簽章預覽版的音訊宿主設定影響整台電腦，部分 DRM 音訊可能受影響。"), null);
+                L10n.T("1. 選擇耳機或喇叭。首次按「設定此裝置」；完成後使用左右互換開關。\n\n2. 分別測試來源左、右聲道，再依聽到的方向確認。設定開啟不代表每個播放程式都已通過核心；運作狀態以近期處理證據顯示。\n\n3. 固定裝置會保留離線目標。跟隨系統預設只更新視窗的操作目標，各裝置設定獨立保存，新裝置仍須先設定。\n\n關閉視窗後，已接入裝置的互換設定會保留。進階設定可以關閉所有裝置的互換、重新啟動電腦音訊服務，或解除安裝 Channel Flip。\n\n作用範圍是所選裝置的 Windows 共用模式音訊。獨佔模式、ASIO、RAW 及停用音效強化可能繞過核心；藍牙免持模式可能是另一個端點。\n\n本程式採 MIT 授權，內建自己的音訊核心，無須 Equalizer APO。未簽章預覽版的音訊宿主設定影響整台電腦，部分 DRM 音訊可能受影響。"), null);
         }
         public void RenderPreview(string path) { RenderPreview(path, 660, 720, 96, false); }
         public void RenderPreview(string path, int width, int height, int dpi, bool contrast, double textScale = 1)

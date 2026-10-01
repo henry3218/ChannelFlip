@@ -39,7 +39,7 @@ Swap the left and right channels of your headphones or speakers on Windows. Wind
 2. **Set up a device:** Select your headphones or speakers, choose **Set up this device**, and follow the on-screen steps.
 3. **Check the direction:** Turn on **Swap left/right** and use both test buttons. The left source should reach your right ear; the right source should reach your left ear.
 
-Swapping stays active after you close the window. Turn off **Swap left/right** to restore the original direction. To undo every system change, uninstall **Channel Flip** from **Settings → Apps**, or choose **Advanced settings → Remove all device settings**.
+Swapping stays active after you close the window. Turn off **Swap left/right** to restore the original direction. To undo every system change, uninstall **Channel Flip** from **Settings → Apps**, or choose **Advanced settings → Uninstall Channel Flip**.
 
 When a new version includes a newer audio core, the app offers **Update audio core**. If a Windows or driver update removes a device's setup, the app says so and offers **Set up this device again**.
 

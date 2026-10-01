@@ -88,7 +88,7 @@ namespace ChannelFlip
             using (var map = OpenStateMap(file, MemoryMappedFileAccess.Read))
             using (var view = map.CreateViewAccessor(0, 4096, MemoryMappedFileAccess.Read))
             {
-                if (view.ReadInt32(0) != StateMagic || view.ReadInt32(4) != 1) throw new InvalidDataException(L10n.T("音訊核心狀態檔無效，請在進階設定移除所有裝置的設定，再重新設定裝置。"));
+                if (view.ReadInt32(0) != StateMagic || view.ReadInt32(4) != 1) throw new InvalidDataException(L10n.T("音訊核心狀態檔無效，請在進階設定解除安裝 Channel Flip，再重新設定裝置。"));
                 status.Enabled = view.ReadInt32(8) != 0;
                 status.Channels = view.ReadInt32(16);
                 status.Loads = view.ReadInt32(20);
@@ -307,7 +307,7 @@ namespace ChannelFlip
                 using (var registry = machine.CreateSubKey(RegistryPath + @"\Devices\" + id))
                 {
                     // Save recovery information before the first audio-related mutation.
-                    if (registry.GetValue("Journal") != null) throw new InvalidOperationException(L10n.T("找到未完成的設定備份。請先在進階設定使用「移除所有裝置的設定」還原。"));
+                    if (registry.GetValue("Journal") != null) throw new InvalidOperationException(L10n.T("找到未完成的設定備份。請先在進階設定解除安裝 Channel Flip，再重新設定。"));
                     registry.SetValue("Journal", RegistryEdit.Serialize(changes));
                     registry.SetValue("StatePath", StatePath(id));
                     registry.SetValue("ChildClsid", child);

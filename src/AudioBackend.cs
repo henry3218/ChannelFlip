@@ -70,10 +70,10 @@ namespace ChannelFlip
             var owned = scope.Changes.Where(e => e.MatchesAfter()).ToArray();
             var external = scope.Changes.Where(e => !e.MatchesAfter() && !e.MatchesBefore()).ToArray();
             await Engine.Remove(expected);
-            if (Engine.ReadScope().HasChanges) throw new IOException(L10n.T("移除尚未完成，仍有本程式的設定。請檢查進階設定中的剩餘清單。"));
+            if (Engine.ReadScope().HasChanges) throw new IOException(L10n.T("解除安裝尚未完成，仍有本程式的設定。請重新開啟進階設定，檢查剩餘的項目。"));
             int unrestored = owned.Count(e => !e.MatchesBefore());
             if (unrestored > 0) throw new IOException(L10n.T("本程式已解除登記，但有 {0} 項設定未能確認還原，可能在操作期間被修改。請保留診斷資訊。", unrestored));
-            return L10n.M("已移除所有裝置的設定，並確認本程式管理的設定已還原。{0} 電腦音訊服務已重新啟動。{1}",
+            return L10n.M("已解除安裝 Channel Flip，並確認本程式管理的設定都已還原。{0} 電腦音訊服務已重新啟動。{1}",
                 external.Length > 0 ? (object)L10n.M("另保留了 {0} 項外部修改。", external.Length) : "",
                 Directory.Exists(Engine.InstallDirectory) ? (object)L10n.M("部分檔案仍在使用中，會在下次重新啟動 Windows 時刪除。") : "");
         }
