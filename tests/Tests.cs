@@ -125,6 +125,26 @@ public static class Tests
                         Throws(delegate { Engine.CheckScope(deviceScope.Signature); }, "Changed system scope is rejected before mutation");
                         root.DeleteSubKeyTree(Engine.RegistryPath + @"\Devices");
                         Check(Engine.ReadScope().HasChanges && Engine.ReadScope().Devices.Length == 0, "Orphaned global journal still exposes recovery");
+                        string resetId = "{33333333-3333-3333-3333-333333333333}";
+                        using (var resetKey = root.CreateSubKey(Engine.RegistryPath + @"\Devices\" + resetId)) resetKey.SetValue("Journal", "<changes />");
+                        var reset = Engine.Read(resetId);
+                        Check(reset.Known && !reset.Attached, "A setup journal without an endpoint attachment is reported as reset by Windows");
+                        Check(Engine.ReadInstallation().Configured, "A journaled device counts as a configured installation");
+                        root.DeleteSubKeyTree(Engine.RegistryPath + @"\Devices\" + resetId);
+                        Check(!Engine.Read(resetId).Known, "A device without a journal is not reported as reset");
+                        var beforeEntry = Engine.ReadScope();
+                        Engine.WriteUninstallEntry(@"C:\Program Files\ChannelFlip\ChannelFlip.exe", "2.4.0", 400);
+                        using (var entry = root.OpenSubKey(Engine.UninstallPath))
+                            Check(entry != null && (string)entry.GetValue("UninstallString") == "\"C:\\Program Files\\ChannelFlip\\ChannelFlip.exe\" --uninstall" &&
+                                (string)entry.GetValue("DisplayName") == "Channel Flip" && (string)entry.GetValue("DisplayVersion") == "2.4.0" &&
+                                (int)entry.GetValue("NoModify") == 1 && (int)entry.GetValue("EstimatedSize") == 400,
+                                "Apps entry runs the uninstaller from the Program Files copy");
+                        var withEntry = Engine.ReadScope();
+                        Check(withEntry.Installed && withEntry.HasChanges && withEntry.Signature != beforeEntry.Signature, "An Apps entry is part of the reviewed removal scope");
+                        Engine.RemoveUninstallEntry();
+                        Check(!Engine.ReadScope().Installed && Engine.ReadScope().Signature == beforeEntry.Signature, "Removing the Apps entry restores the earlier scope");
+                        byte[] embedded = Engine.EmbeddedCore();
+                        Check(embedded.Length > 1024 && embedded[0] == (byte)'M' && embedded[1] == (byte)'Z' && ReferenceEquals(embedded, Engine.EmbeddedCore()), "Embedded core is a cached PE image");
                     }
                     finally { RegOverridePredefKey(new IntPtr(unchecked((int)0x80000002)), IntPtr.Zero); }
                 }
@@ -157,6 +177,7 @@ public static class Tests
             ReliabilityTests.Run(Check, directory);
             RegistryReliabilityTests.Run(Check);
             LocalizationTests.Run(Check, directory);
+            InstallationTests.Run(Check, directory);
         }
         catch (Exception ex) { Console.WriteLine(ex); failed++; }
         Console.WriteLine("RESULT: " + passed + " passed; " + failed + " failed");return failed == 0 ? 0 : 1;

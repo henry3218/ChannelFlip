@@ -38,10 +38,19 @@ each device retains its own settings, and new devices still need setup.
 Closing the application window keeps processing settings on configured devices.
 
 Advanced settings:
-- Turn off all configured swaps: restore direction, keep the core/settings.
-- Restart Windows audio services: briefly interrupt all computer audio.
-- Remove all device settings: review all configured devices, including offline
-  ones, restore managed changes, and restart audio services.
+- Turn off swap on all devices: restore the original direction without
+  interrupting sound. Turn swapping back on in the main window.
+- Restart Windows audio services: use this if sound misbehaves or the status
+  shows an error. Sound on all devices stops for a second or two.
+- Uninstall Channel Flip: undo every system change, including on offline
+  devices, and delete the installed files. Sound is briefly interrupted.
+
+Setup copies ChannelFlip.exe to Program Files and adds Channel Flip to Apps in
+Windows Settings. Uninstalling it there does the same as Uninstall Channel Flip
+in Advanced settings.
+When a new version includes a newer audio core, choose Update audio core.
+If a Windows or driver update removes a device's setup, choose Set up this
+device again.
 
 This audio core has no Microsoft audio signature. First-time setup requires
 the system-wide DisableProtectedAudioDG=1 setting. DRM playback requiring

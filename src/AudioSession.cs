@@ -27,16 +27,19 @@ namespace ChannelFlip
         public OutputDevice Selected;
         public EngineStatus State = new EngineStatus();
         public SetupScope Scope = new SetupScope();
-        public string ReadError, ScopeError, EnumerationError;
+        public InstallationStatus Installation = new InstallationStatus();
+        public string ReadError, ScopeError, EnumerationError, InstallationError;
         public OperationResult LastOperation { get; private set; }
         private LocalizedText message, errorDetail;
+        // Scope signature right after the last operation; null while no result is shown.
+        private string resultScope;
         public string Message { get { return LocalizedText.Render(message); } set { message = value; } }
         public string ErrorDetail { get { return LocalizedText.Render(errorDetail); } set { errorDetail = value; } }
         public void SetMessage(LocalizedText value) { message = value; }
         public void SetErrorDetail(LocalizedText value) { errorDetail = value; }
         public bool MessageError, Busy;
         public event Action Changed;
-        public UiState Presentation { get { return UiState.Evaluate(Selected, State, ReadError, Observation, Clock()); } }
+        public UiState Presentation { get { return UiState.Evaluate(Selected, State, ReadError, Observation, Clock(), Installation); } }
         public AudioSession(IAudioBackend backend, DevicePreference preference) { Backend = backend; Preference = preference; }
         public void Notify() { if (Changed != null) Changed(); }
         public void Refresh()
@@ -70,6 +73,10 @@ namespace ChannelFlip
             catch (Exception ex) { ReadError = ex.Message; State = new EngineStatus(); Observation.Reset(); }
             try { Scope = Backend.Scope(); }
             catch (Exception ex) { Scope = new SetupScope(); ScopeError = ex.Message; }
+            // A result describes the configuration it produced; another program changing it makes the result stale.
+            if (resultScope != null && Scope.Signature != resultScope && !MessageError) { message = null; resultScope = null; }
+            try { Installation = Backend.Installation(); InstallationError = null; }
+            catch (Exception ex) { Installation = new InstallationStatus(); InstallationError = ex.Message; }
             Notify();
         }
         public void Select(OutputDevice device)
@@ -95,14 +102,14 @@ namespace ChannelFlip
             if (Busy) return;
             var target = Devices.FirstOrDefault(d => d.Id == targetId);
             LastOperation = new OperationResult { DeviceId = targetId, DeviceName = target == null ? targetId : target.Name, Operation = progress };
-            Busy = true; message = progress; MessageError = false; ErrorDetail = null; Notify();
+            Busy = true; message = progress; MessageError = false; ErrorDetail = null; resultScope = null; Notify();
             try { message = await action(); }
             catch (OperationCanceledException) { message = L10n.M("已取消這次操作。"); }
             catch (Exception ex) { message = L10n.M("操作未完成，請檢查下方狀態或錯誤詳情。"); ErrorDetail = ex.Message; MessageError = true; }
             finally
             {
                 LastOperation.Failed = MessageError; LastOperation.Error = errorDetail;
-                Busy = false; Refresh();
+                Busy = false; Refresh(); resultScope = Scope.Signature;
                 if (!MessageError && targetId != null && (Selected == null || Selected.Id != targetId)) { message = L10n.M("操作目標已變更，請查看目前裝置的狀態。"); ErrorDetail = null; Notify(); }
             }
         }
@@ -169,6 +176,21 @@ namespace ChannelFlip
             {
                 if (Backend.Scope().Signature != signature) throw new InvalidOperationException(L10n.T("影響範圍已改變，請重新開啟進階設定檢視清單。"));
                 Observation.Reset(); return await Backend.Global(action, signature);
+            });
+        }
+        public Task UpdateInstallationAsync()
+        {
+            string id = Selected == null ? null : Selected.Id;
+            bool interrupts = Installation.InterruptsAudio;
+            return Run(id, interrupts ? L10n.M("正在更新音訊核心，電腦音訊會短暫中斷…") : L10n.M("正在把 Channel Flip 加入 Windows 應用程式清單…"), async delegate
+            {
+                // The selected device, when connected, lets the elevated update prove that the new core runs.
+                var device = id == null ? null : Backend.Enumerate().FirstOrDefault(d => d.Id == id && !d.Offline);
+                Observation.Reset();
+                await Backend.UpdateInstallation(device == null ? null : device.Guid);
+                if (Backend.Installation().NeedsUpdate) throw new IOException(L10n.T("尚未確認安裝更新完成。"));
+                return interrupts ? L10n.M("音訊核心已更新。請播放左右測試音，確認實際耳機方向。") :
+                    L10n.M("已加入 Windows 應用程式清單。之後可以從 Windows 設定的「應用程式」解除安裝 Channel Flip。");
             });
         }
     }

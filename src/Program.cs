@@ -74,6 +74,8 @@ namespace ChannelFlip
                     if (args[0] == "--remove" && args.Length == 3 && args[1] == "--scope") { Engine.RemoveAsAdmin(args[2]); return 0; }
                     if (args[0] == "--restart-audio" && args.Length == 1) { Engine.RestartAudioService(); return 0; }
                     if (args[0] == "--off" && args.Length == 1) { Engine.DisableAll(); return 0; }
+                    if (args[0] == "--update-installation" && (args.Length == 1 || args.Length == 2)) { Engine.UpdateInstallationAsAdmin(args.Length == 2 ? args[1] : null); return 0; }
+                    if (args[0] == "--uninstall" && args.Length == 1) return MainWindow.RunUninstaller();
                     return 64;
                 }
                 bool created;
@@ -101,7 +103,7 @@ namespace ChannelFlip
             catch (Exception ex)
             {
                 Log(ex);
-                if (args.Length > 0 && new[] { "--attach", "--remove", "--restart-audio" }.Contains(args[0]))
+                if (args.Length > 0 && new[] { "--attach", "--remove", "--restart-audio", "--update-installation" }.Contains(args[0]))
                 {
                     try { string result = Engine.SetupResultPath(operationId); Directory.CreateDirectory(Path.GetDirectoryName(result)); File.WriteAllText(result, ex.ToString(), new UTF8Encoding(true)); } catch { }
                 }
@@ -119,6 +121,9 @@ namespace ChannelFlip
             using (var core = Assembly.GetExecutingAssembly().GetManifestResourceStream("ChannelFlip.Native.dll"))
                 text.AppendLine("Embedded native core: " + (core == null ? "MISSING" : core.Length + " bytes"));
             text.AppendLine("Audio host setting consent required: " + Engine.NeedsAudioHostPermission());
+            var installation = Engine.ReadInstallation();
+            text.AppendLine("Installation: configured=" + installation.Configured + " coreDiffers=" + installation.CoreDiffers + " coreMissing=" + installation.CoreMissing +
+                " registered=" + installation.Registered + " installedVersion=" + (installation.InstalledVersion ?? "unrecorded") + " newer=" + installation.Newer);
             var snapshot = AudioDevices.ReadSnapshot();
             foreach (var diagnostic in snapshot.Diagnostics) text.AppendLine("Enumeration: " + diagnostic);
             foreach (var device in snapshot.Devices)
